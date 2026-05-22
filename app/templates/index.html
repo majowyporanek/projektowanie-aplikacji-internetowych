@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Booking System</h1>
+<p>Projekt zaliczeniowy PAI. Backend: FastAPI. Status szkieletu: <strong>Dzień 1</strong>.</p>
+
+<article>
+    <header><strong>Stan systemu</strong></header>
+    <div hx-get="/health" hx-trigger="load, every 10s" hx-swap="innerHTML">
+        Ładowanie statusu…
+    </div>
+</article>
+
+<p><a href="/docs" role="button">Otwórz Swagger</a></p>
+{% endblock %}

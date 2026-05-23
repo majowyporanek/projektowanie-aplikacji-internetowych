@@ -30,7 +30,7 @@ Czego się wyrzekamy, jakie są konsekwencje.
 
 | ID | Tytuł | Data |
 |---|---|---|
-| ADR-1 | FastAPI jako framework backendowy | _todo_ |
+| [ADR-1](0001-fastapi-as-backend-framework.md) | FastAPI jako framework backendowy | 2026-05-23 |
 | ADR-2 | PostgreSQL + SQLAlchemy + Alembic | _todo_ |
 | ADR-3 | HTMX + Jinja zamiast SPA | _todo_ |
 | ADR-4 | Strategia race conditions: EXCLUDE USING gist + tstzrange | _todo_ |

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Rejestracja</h1>
+
+<p>Tworzysz konto razem z nową organizacją — zostaniesz jej adminem. Możesz potem dodać członków.</p>
+
+<form hx-post="/auth/register"
+      hx-ext="json-enc"
+      hx-swap="none"
+      hx-on::after-request="
+        if (event.detail.successful) {
+          window.location = '/';
+        } else {
+          let msg = 'Nie udało się utworzyć konta';
+          try {
+            const r = JSON.parse(event.detail.xhr.responseText);
+            if (typeof r.detail === 'string') msg = r.detail;
+            else if (Array.isArray(r.detail)) msg = r.detail.map(e => e.msg).join(', ');
+          } catch (e) {}
+          document.getElementById('register-error').textContent = msg;
+        }
+      ">
+    <label>
+        Email
+        <input type="email" name="email" required autocomplete="email">
+    </label>
+    <label>
+        Hasło (min. 8 znaków)
+        <input type="password" name="password" minlength="8" required autocomplete="new-password">
+    </label>
+    <label>
+        Nazwa organizacji
+        <input type="text" name="organization_name" minlength="2" maxlength="120" required>
+        <small>Np. nazwa firmy, koła, klubu. Sama będziesz adminem.</small>
+    </label>
+    <button type="submit">Utwórz konto</button>
+</form>
+
+<p id="register-error" role="alert" style="color: var(--pico-color-red-500);"></p>
+
+<p>Masz już konto? <a href="/login">Zaloguj się</a></p>
+{% endblock %}

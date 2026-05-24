@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Zaloguj się</h1>
+
+<form hx-post="/auth/login"
+      hx-ext="json-enc"
+      hx-swap="none"
+      hx-on::after-request="
+        if (event.detail.successful) {
+          window.location = '/';
+        } else {
+          let msg = 'Nieprawidłowy email lub hasło';
+          try {
+            const r = JSON.parse(event.detail.xhr.responseText);
+            if (typeof r.detail === 'string') msg = r.detail;
+            else if (Array.isArray(r.detail)) msg = r.detail.map(e => e.msg).join(', ');
+          } catch (e) {}
+          document.getElementById('login-error').textContent = msg;
+        }
+      ">
+    <label>
+        Email
+        <input type="email" name="email" required autocomplete="email">
+    </label>
+    <label>
+        Hasło
+        <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button type="submit">Zaloguj</button>
+</form>
+
+<p id="login-error" role="alert" style="color: var(--pico-color-red-500);"></p>
+
+<p>Nie masz konta? <a href="/register">Zarejestruj się</a></p>
+{% endblock %}

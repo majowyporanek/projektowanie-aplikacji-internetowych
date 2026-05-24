@@ -1,8 +1,4 @@
 # ADR-1: FastAPI jako framework backendowy
-
-## Status
-Accepted — 2026-05-23
-
 ## Kontekst
 
 Piszę backend dla systemu rezerwacji w Pythonie. Apka ma kilkanaście endpointów (CRUD na zasobach i rezerwacjach + login/register), oddaje robotę do Celery (przypomnienia mailowe) i gada z PostgreSem. Muszę gdzieś walidować payloady (wymaganie R5) i ładnie byłoby mieć dokumentację API bez pisania jej ręcznie.

@@ -25,7 +25,7 @@ Async pasuje do reszty stacku — asyncpg do Postgresa, `redis.asyncio` do oddaw
 
 System dependency injection przez `Depends()` jest dla mnie kluczowy ze względu na multi-tenancy — `get_current_user`, `get_current_org` i `get_session` wstrzykuję deklaratywnie do każdego handlera. Filtr `organization_id` nie powtarza się w każdym query, tylko siedzi w jednym dependency. Mniejsze ryzyko zapomnienia = mniejsze ryzyko data leaka między tenantami.
 
-No i pisałam już w FastAPI, więc nie tracę 2-3 dni projektu na poznawanie frameworka. Przy budżecie 1-2 h dziennie to istotne.
+Krzywą uczenia mam za sobą — pisałam już w FastAPI wcześniej.
 
 ## Trade-offy
 

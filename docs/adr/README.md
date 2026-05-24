@@ -7,9 +7,6 @@ Każda istotna decyzja architektoniczna mieszka tu jako osobny plik `NNNN-tytul.
 ```markdown
 # ADR-NNNN: Tytuł
 
-## Status
-Accepted | Proposed | Superseded by ADR-XXX
-
 ## Kontekst
 Jaki problem rozwiązujemy? Jakie są ograniczenia?
 
@@ -28,12 +25,12 @@ Czego się wyrzekamy, jakie są konsekwencje.
 
 ## Lista ADR-ów
 
-| ID | Tytuł | Data |
+| ID | Tytuł | Status |
 |---|---|---|
-| [ADR-1](0001-fastapi-as-backend-framework.md) | FastAPI jako framework backendowy | 2026-05-23 |
-| ADR-2 | PostgreSQL + SQLAlchemy + Alembic | _todo_ |
-| ADR-3 | HTMX + Jinja zamiast SPA | _todo_ |
-| ADR-4 | Strategia race conditions: EXCLUDE USING gist + tstzrange | _todo_ |
-| ADR-5 | JWT cookie auth zamiast OAuth/sesji serwerowych | _todo_ |
-| ADR-6 | Multi-tenancy: shared schema z organization_id | _todo_ |
-| ADR-7 | Celery + Redis dla email reminders | _todo_ |
+| [ADR-1](0001-fastapi-as-backend-framework.md) | FastAPI jako framework backendowy | ✓ |
+| ADR-2 | PostgreSQL + SQLAlchemy + Alembic | todo |
+| [ADR-3](0003-htmx-jinja-zamiast-spa.md) | HTMX + Jinja zamiast SPA | ✓ |
+| ADR-4 | Strategia race conditions: EXCLUDE USING gist + tstzrange | todo |
+| ADR-5 | JWT cookie auth zamiast OAuth/sesji serwerowych | todo |
+| ADR-6 | Multi-tenancy: shared schema z organization_id | todo |
+| ADR-7 | Celery + Redis dla email reminders | todo |

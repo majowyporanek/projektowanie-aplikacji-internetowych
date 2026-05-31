@@ -28,9 +28,9 @@ Czego się wyrzekamy, jakie są konsekwencje.
 | ID | Tytuł | Status |
 |---|---|---|
 | [ADR-1](0001-fastapi-as-backend-framework.md) | FastAPI jako framework backendowy | ✓ |
-| ADR-2 | PostgreSQL + SQLAlchemy + Alembic | todo |
+| [ADR-2](0002-postgres-sqlalchemy-alembic.md) | PostgreSQL + SQLAlchemy + Alembic | ✓ |
 | [ADR-3](0003-htmx-jinja-zamiast-spa.md) | HTMX + Jinja zamiast SPA | ✓ |
-| ADR-4 | Strategia race conditions: EXCLUDE USING gist + tstzrange | todo |
+| [ADR-4](0004-race-conditions-exclude-using-gist.md) | Strategia race conditions: EXCLUDE USING gist + tstzrange | ✓ |
 | ADR-5 | JWT cookie auth zamiast OAuth/sesji serwerowych | todo |
 | [ADR-6](0006-multi-tenancy-shared-schema.md) | Multi-tenancy: shared schema z organization_id | ✓ |
 | ADR-7 | Celery + Redis dla email reminders | todo |

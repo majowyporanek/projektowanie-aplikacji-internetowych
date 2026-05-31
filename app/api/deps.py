@@ -32,6 +32,20 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    access_token: Annotated[str | None, Cookie(alias=ACCESS_TOKEN_COOKIE)] = None,
+    session: AsyncSession = Depends(get_session),
+) -> User | None:
+    if access_token is None:
+        return None
+    try:
+        payload = decode_access_token(access_token)
+    except jwt.PyJWTError:
+        return None
+    user = await session.get(User, uuid.UUID(payload["sub"]))
+    return user
+
+
 async def get_current_org(
     user: Annotated[User, Depends(get_current_user)],
     session: AsyncSession = Depends(get_session),

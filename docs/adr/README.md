@@ -32,5 +32,5 @@ Czego się wyrzekamy, jakie są konsekwencje.
 | [ADR-3](0003-htmx-jinja-zamiast-spa.md) | HTMX + Jinja zamiast SPA | ✓ |
 | ADR-4 | Strategia race conditions: EXCLUDE USING gist + tstzrange | todo |
 | ADR-5 | JWT cookie auth zamiast OAuth/sesji serwerowych | todo |
-| ADR-6 | Multi-tenancy: shared schema z organization_id | todo |
+| [ADR-6](0006-multi-tenancy-shared-schema.md) | Multi-tenancy: shared schema z organization_id | ✓ |
 | ADR-7 | Celery + Redis dla email reminders | todo |

@@ -7,19 +7,42 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script src="https://unpkg.com/htmx-ext-json-enc@2.0.2/json-enc.js"></script>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 0.15em 0.6em;
+            border-radius: 0.5em;
+            font-size: 0.8em;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .badge-success { background: #d1f4dd; color: #14633a; }
+        .badge-warning { background: #fff2c5; color: #7a5d00; }
+        .badge-muted   { background: #e5e7eb; color: #4b5563; }
+        .badge-danger  { background: #fde2e2; color: #8a1f1f; }
+        .form-msg { margin-top: 0.5rem; min-height: 1.25rem; }
+        .form-msg.ok    { color: #14633a; }
+        .form-msg.error { color: #8a1f1f; }
+        nav .brand { font-weight: 700; letter-spacing: -0.02em; }
+        article { padding: 1.25rem 1.5rem; }
+        article > h2:first-child, article > h3:first-child { margin-top: 0; }
+        .muted { color: #6b7280; }
+        .row-actions { display: flex; gap: 0.5rem; }
+    </style>
 </head>
 <body>
     <main class="container">
         <nav>
             <ul>
-                <li><strong>Booking System</strong></li>
+                <li class="brand">Booking System</li>
             </ul>
             <ul>
                 <li><a href="/">Home</a></li>
                 <li><a href="/app/resources">Zasoby</a></li>
+                <li><a href="/app/bookings">Rezerwacje</a></li>
                 <li><a href="/login">Zaloguj</a></li>
                 <li><a href="/register">Rejestracja</a></li>
-                <li><a href="/docs">API docs</a></li>
+                <li><a href="/docs">API</a></li>
             </ul>
         </nav>
         {% block content %}{% endblock %}

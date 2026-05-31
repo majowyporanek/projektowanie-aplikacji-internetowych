@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<header>
+    <h1>Rezerwacje</h1>
+    <p class="muted">Zalogowano jako <strong>{{ user.email }}</strong></p>
+</header>
+
+<article>
+    <h3>Lista rezerwacji</h3>
+    {% if bookings %}
+    <table>
+        <thead>
+            <tr>
+                <th>Zasób</th>
+                <th>Od</th>
+                <th>Do</th>
+                <th>Kto</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in bookings %}
+            <tr>
+                <td>{{ b.resource_name }}</td>
+                <td>{{ b.starts_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td>{{ b.ends_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td class="muted">{{ b.user_email }}</td>
+                <td>
+                    {% if b.status == "confirmed" %}
+                        <span class="badge badge-success">Potwierdzona</span>
+                    {% elif b.status == "pending" %}
+                        <span class="badge badge-warning">Oczekuje</span>
+                    {% else %}
+                        <span class="badge badge-muted">Anulowana</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Brak rezerwacji. Stwórz pierwszą poniżej.</p>
+    {% endif %}
+</article>
+
+<article>
+    <h3>Nowa rezerwacja</h3>
+    {% if resources %}
+    <form
+        hx-post="/bookings"
+        hx-ext="json-enc"
+        hx-swap="none"
+        hx-on::after-request="
+            const msg = document.getElementById('booking-form-msg');
+            if (event.detail.successful) {
+                window.location.reload();
+            } else if (event.detail.xhr.status === 409) {
+                msg.className = 'form-msg error';
+                msg.textContent = 'Slot zajęty — wybierz inny czas lub zasób.';
+            } else if (event.detail.xhr.status === 422) {
+                msg.className = 'form-msg error';
+                msg.textContent = 'Nieprawidłowe dane (np. ends_at <= starts_at).';
+            } else {
+                msg.className = 'form-msg error';
+                msg.textContent = 'Błąd ' + event.detail.xhr.status;
+            }
+        "
+    >
+        <label>
+            Zasób
+            <select name="resource_id" required>
+                {% for r in resources %}
+                <option value="{{ r.id }}">{{ r.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <div class="grid">
+            <label>
+                Od
+                <input type="datetime-local" name="starts_at" required>
+            </label>
+            <label>
+                Do
+                <input type="datetime-local" name="ends_at" required>
+            </label>
+        </div>
+        <label>
+            Status
+            <select name="status">
+                <option value="confirmed" selected>Potwierdzona</option>
+                <option value="pending">Oczekuje</option>
+            </select>
+        </label>
+        <label>
+            Notatki (opcjonalne)
+            <textarea name="notes" rows="2" maxlength="2000" placeholder="np. spotkanie zespołu"></textarea>
+        </label>
+        <button type="submit">Zarezerwuj</button>
+        <div id="booking-form-msg" class="form-msg"></div>
+    </form>
+    {% else %}
+    <p class="muted">Najpierw <a href="/app/resources">dodaj zasób</a>, żeby móc cokolwiek zarezerwować.</p>
+    {% endif %}
+</article>
+{% endblock %}

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_optional
 from app.db import get_session
+from app.models.booking import Booking
 from app.models.resource import Resource
 from app.models.user import User
 
@@ -33,4 +34,54 @@ async def resources_page(
         request,
         "resources_list.html",
         {"title": "Zasoby", "resources": list(result), "user": user},
+    )
+
+
+@router.get("/bookings", response_class=HTMLResponse)
+async def bookings_page(
+    request: Request,
+    user: Annotated[User | None, Depends(get_current_user_optional)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+
+    rows = await session.execute(
+        select(Booking, Resource.name, User.email)
+        .join(Resource, Booking.resource_id == Resource.id)
+        .join(User, Booking.user_id == User.id)
+        .where(Booking.organization_id == user.organization_id)
+        .order_by(Booking.starts_at.desc())
+    )
+    bookings = [
+        {
+            "id": b.id,
+            "resource_name": resource_name,
+            "user_email": user_email,
+            "starts_at": b.starts_at,
+            "ends_at": b.ends_at,
+            "status": b.status,
+            "notes": b.notes,
+        }
+        for b, resource_name, user_email in rows.all()
+    ]
+
+    resources = await session.scalars(
+        select(Resource)
+        .where(
+            Resource.organization_id == user.organization_id,
+            Resource.is_active.is_(True),
+        )
+        .order_by(Resource.name)
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "bookings_list.html",
+        {
+            "title": "Rezerwacje",
+            "bookings": bookings,
+            "resources": list(resources),
+            "user": user,
+        },
     )

@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class BookingCreate(BaseModel):
@@ -11,6 +11,13 @@ class BookingCreate(BaseModel):
     ends_at: datetime
     status: Literal["pending", "confirmed"] = "confirmed"
     notes: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("starts_at", "ends_at")
+    @classmethod
+    def _assume_utc_if_naive(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
 
     @model_validator(mode="after")
     def _ends_after_starts(self) -> "BookingCreate":

@@ -1,28 +1,68 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Zasoby</h1>
-<p>Zalogowano jako <strong>{{ user.email }}</strong></p>
+<header>
+    <h1>Zasoby</h1>
+    <p class="muted">Zalogowano jako <strong>{{ user.email }}</strong></p>
+</header>
 
-{% if resources %}
-<table>
-    <thead>
-        <tr>
-            <th>Nazwa</th>
-            <th>Opis</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for r in resources %}
-        <tr>
-            <td>{{ r.name }}</td>
-            <td>{{ r.description or "—" }}</td>
-            <td>{{ "Aktywny" if r.is_active else "Nieaktywny" }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>Brak zasobów w Twojej organizacji.</p>
-{% endif %}
+<article>
+    <h3>Lista zasobów</h3>
+    {% if resources %}
+    <table>
+        <thead>
+            <tr>
+                <th>Nazwa</th>
+                <th>Opis</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in resources %}
+            <tr>
+                <td>{{ r.name }}</td>
+                <td>{{ r.description or "—" }}</td>
+                <td>
+                    {% if r.is_active %}
+                        <span class="badge badge-success">Aktywny</span>
+                    {% else %}
+                        <span class="badge badge-muted">Nieaktywny</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Brak zasobów. Dodaj pierwszy poniżej.</p>
+    {% endif %}
+</article>
+
+<article>
+    <h3>Dodaj nowy zasób</h3>
+    <form
+        hx-post="/resources"
+        hx-ext="json-enc"
+        hx-swap="none"
+        hx-on::after-request="
+            if (event.detail.successful) {
+                window.location.reload();
+            } else {
+                const msg = document.getElementById('resource-form-msg');
+                msg.className = 'form-msg error';
+                msg.textContent = 'Nie udało się dodać zasobu (status ' + event.detail.xhr.status + ')';
+            }
+        "
+    >
+        <label>
+            Nazwa
+            <input type="text" name="name" required minlength="1" maxlength="120" placeholder="np. Sala A">
+        </label>
+        <label>
+            Opis (opcjonalny)
+            <input type="text" name="description" placeholder="np. Salka konferencyjna na 8 osób">
+        </label>
+        <button type="submit">Dodaj zasób</button>
+        <div id="resource-form-msg" class="form-msg"></div>
+    </form>
+</article>
 {% endblock %}

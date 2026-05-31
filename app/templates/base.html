@@ -4,30 +4,254 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title or "Booking System" }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script src="https://unpkg.com/htmx-ext-json-enc@2.0.2/json-enc.js"></script>
     <style>
+        :root {
+            --chocolate: #48261D;
+            --chocolate-soft: #6b3f33;
+            --sky: #B2CDFF;
+            --sky-soft: #e8f0ff;
+            --cream: #fbf8f4;
+            --paper: #ffffff;
+            --ink: #2a1a14;
+            --ink-soft: #6e5a52;
+            --line: #ece5dd;
+            --success-bg: #e7f6ec;
+            --success-fg: #1e6e3c;
+            --warning-bg: #fdf4d3;
+            --warning-fg: #7a5d00;
+            --danger-bg:  #fde7e7;
+            --danger-fg:  #8a1f1f;
+
+            --pico-font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+            --pico-font-weight: 400;
+            --pico-border-radius: 0.75rem;
+
+            --pico-color: var(--ink);
+            --pico-background-color: var(--cream);
+            --pico-h1-color: var(--ink);
+            --pico-h2-color: var(--ink);
+            --pico-h3-color: var(--ink);
+            --pico-h4-color: var(--ink);
+            --pico-h5-color: var(--ink);
+            --pico-h6-color: var(--ink);
+            --pico-muted-color: var(--ink-soft);
+            --pico-muted-border-color: var(--line);
+
+            --pico-primary: var(--chocolate);
+            --pico-primary-background: var(--chocolate);
+            --pico-primary-border: var(--chocolate);
+            --pico-primary-hover: var(--chocolate-soft);
+            --pico-primary-hover-background: var(--chocolate-soft);
+            --pico-primary-hover-border: var(--chocolate-soft);
+            --pico-primary-focus: rgba(178, 205, 255, 0.5);
+            --pico-primary-inverse: var(--paper);
+
+            --pico-card-background-color: var(--paper);
+            --pico-card-sectioning-background-color: var(--paper);
+            --pico-card-border-color: transparent;
+
+            --pico-form-element-background-color: var(--paper);
+            --pico-form-element-color: var(--ink);
+            --pico-form-element-placeholder-color: var(--ink-soft);
+            --pico-form-element-border-color: var(--line);
+            --pico-form-element-active-background-color: var(--paper);
+            --pico-form-element-active-border-color: var(--chocolate);
+            --pico-form-element-focus-color: rgba(72, 38, 29, 0.15);
+        }
+
+        html, body {
+            background:
+                radial-gradient(ellipse at top left, rgba(178, 205, 255, 0.35), transparent 55%),
+                radial-gradient(ellipse at bottom right, rgba(72, 38, 29, 0.06), transparent 50%),
+                var(--cream);
+            background-attachment: fixed;
+            color: var(--ink);
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        main.container { padding-top: 1rem; padding-bottom: 3rem; }
+
+        nav {
+            background: var(--paper);
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 2px rgba(42, 26, 20, 0.04), 0 4px 16px rgba(42, 26, 20, 0.06);
+        }
+        nav a {
+            color: var(--ink-soft);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.35rem 0.7rem;
+            border-radius: 0.5rem;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        nav a:hover {
+            background: var(--sky-soft);
+            color: var(--chocolate);
+        }
+        nav .brand {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--chocolate);
+            font-size: 1.1rem;
+        }
+        nav .nav-email {
+            font-size: 0.85rem;
+            font-style: italic;
+            padding: 0 0.5rem;
+        }
+
+        main > header {
+            margin-bottom: 1.5rem;
+            padding: 0 0.25rem;
+        }
+        main > header h1 {
+            color: var(--ink);
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 0.25rem;
+        }
+        main > header p { color: var(--ink-soft); margin-bottom: 0; }
+
+        article {
+            background: var(--paper);
+            color: var(--ink);
+            padding: 1.5rem 1.75rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 2px rgba(42, 26, 20, 0.04), 0 4px 24px rgba(42, 26, 20, 0.06);
+            border: none;
+            margin-bottom: 1.25rem;
+        }
+        article h1, article h2, article h3, article h4, article h5, article h6 {
+            color: var(--ink);
+            font-weight: 600;
+            letter-spacing: -0.015em;
+        }
+        article > h2:first-child, article > h3:first-child { margin-top: 0; }
+
+        .muted { color: var(--ink-soft); }
+
+        table {
+            background: transparent;
+            margin-top: 0.5rem;
+        }
+        th {
+            font-weight: 600;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--line);
+        }
+        td {
+            border-bottom: 1px solid var(--line);
+            padding-top: 0.85rem;
+            padding-bottom: 0.85rem;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: var(--sky-soft); }
+
+        label { color: var(--ink); font-weight: 500; }
+
+        input, select, textarea {
+            background: var(--paper);
+            color: var(--ink);
+            border: 1px solid var(--line) !important;
+            border-radius: 0.65rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--chocolate) !important;
+            box-shadow: 0 0 0 3px rgba(178, 205, 255, 0.5) !important;
+            outline: none;
+        }
+        input::placeholder, textarea::placeholder { color: var(--ink-soft); }
+
+        button, [type="submit"], [role="button"] {
+            background: var(--chocolate);
+            color: var(--paper);
+            border: none;
+            border-radius: 0.65rem;
+            padding: 0.65rem 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.005em;
+            transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+            box-shadow: 0 1px 2px rgba(42, 26, 20, 0.15);
+        }
+        button:hover, [type="submit"]:hover, [role="button"]:hover {
+            background: var(--chocolate-soft);
+            box-shadow: 0 4px 12px rgba(72, 38, 29, 0.2);
+            transform: translateY(-1px);
+        }
+        button:active, [type="submit"]:active { transform: translateY(0); }
+
         .badge {
             display: inline-block;
-            padding: 0.15em 0.6em;
-            border-radius: 0.5em;
-            font-size: 0.8em;
+            padding: 0.2em 0.7em;
+            border-radius: 999px;
+            font-size: 0.75rem;
             font-weight: 600;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.01em;
+            line-height: 1.4;
         }
-        .badge-success { background: #d1f4dd; color: #14633a; }
-        .badge-warning { background: #fff2c5; color: #7a5d00; }
-        .badge-muted   { background: #e5e7eb; color: #4b5563; }
-        .badge-danger  { background: #fde2e2; color: #8a1f1f; }
-        .form-msg { margin-top: 0.5rem; min-height: 1.25rem; }
-        .form-msg.ok    { color: #14633a; }
-        .form-msg.error { color: #8a1f1f; }
-        nav .brand { font-weight: 700; letter-spacing: -0.02em; }
-        article { padding: 1.25rem 1.5rem; }
-        article > h2:first-child, article > h3:first-child { margin-top: 0; }
-        .muted { color: #6b7280; }
+        .badge-success { background: var(--success-bg); color: var(--success-fg); }
+        .badge-warning { background: var(--warning-bg); color: var(--warning-fg); }
+        .badge-muted   { background: var(--line); color: var(--ink-soft); }
+        .badge-danger  { background: var(--danger-bg); color: var(--danger-fg); }
+
+        .form-msg { margin-top: 0.75rem; min-height: 1.25rem; font-size: 0.9rem; }
+        .form-msg.ok    { color: var(--success-fg); }
+        .form-msg.error { color: var(--danger-fg); }
+
         .row-actions { display: flex; gap: 0.5rem; }
+
+        .toast {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            padding: 1em 1.4em;
+            border-radius: 0.85rem;
+            z-index: 1000;
+            box-shadow: 0 4px 24px rgba(42, 26, 20, 0.18);
+            opacity: 0;
+            transform: translateY(-0.5rem);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            font-weight: 600;
+            max-width: 340px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .toast::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast-success { background: var(--paper); color: var(--success-fg); border: 1px solid var(--line); }
+        .toast-success::before { background: var(--success-fg); }
+        .toast-warning { background: var(--paper); color: var(--warning-fg); border: 1px solid var(--line); }
+        .toast-warning::before { background: var(--warning-fg); }
+        .toast-error   { background: var(--paper); color: var(--danger-fg); border: 1px solid var(--line); }
+        .toast-error::before { background: var(--danger-fg); }
+
+        @media (max-width: 640px) {
+            nav ul { flex-wrap: wrap; }
+            article { padding: 1.25rem 1.25rem; }
+        }
     </style>
 </head>
 <body>
@@ -38,14 +262,49 @@
             </ul>
             <ul>
                 <li><a href="/">Home</a></li>
-                <li><a href="/app/resources">Zasoby</a></li>
-                <li><a href="/app/bookings">Rezerwacje</a></li>
-                <li><a href="/login">Zaloguj</a></li>
-                <li><a href="/register">Rejestracja</a></li>
+                {% if user %}
+                    <li><a href="/app/resources">Zasoby</a></li>
+                    <li><a href="/app/bookings">Rezerwacje</a></li>
+                    <li class="muted nav-email">{{ user.email }}</li>
+                    <li>
+                        <a href="#"
+                           hx-post="/auth/logout"
+                           hx-on::after-request="window.location='/'">
+                           Wyloguj
+                        </a>
+                    </li>
+                {% else %}
+                    <li><a href="/login">Zaloguj</a></li>
+                    <li><a href="/register">Rejestracja</a></li>
+                {% endif %}
                 <li><a href="/docs">API</a></li>
             </ul>
         </nav>
         {% block content %}{% endblock %}
     </main>
+    <script>
+        function showToast(text, kind) {
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + (kind || 'success');
+            toast.textContent = text;
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const raw = sessionStorage.getItem('toast');
+            if (raw) {
+                sessionStorage.removeItem('toast');
+                try {
+                    const data = JSON.parse(raw);
+                    showToast(data.text, data.kind);
+                } catch (e) {}
+            }
+        });
+    </script>
 </body>
 </html>

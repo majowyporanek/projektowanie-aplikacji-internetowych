@@ -53,6 +53,16 @@
         hx-on::after-request="
             const msg = document.getElementById('booking-form-msg');
             if (event.detail.successful) {
+                let toast = { text: 'Rezerwacja utworzona', kind: 'success' };
+                try {
+                    const data = JSON.parse(event.detail.xhr.responseText);
+                    if (data.status === 'confirmed') {
+                        toast = { text: 'Rezerwacja potwierdzona', kind: 'success' };
+                    } else if (data.status === 'pending') {
+                        toast = { text: 'Rezerwacja oczekuje na akceptację', kind: 'warning' };
+                    }
+                } catch (e) {}
+                sessionStorage.setItem('toast', JSON.stringify(toast));
                 window.location.reload();
             } else if (event.detail.xhr.status === 409) {
                 msg.className = 'form-msg error';

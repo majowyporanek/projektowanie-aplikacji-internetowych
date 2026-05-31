@@ -1,15 +1,40 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Booking System</h1>
-<p>Projekt zaliczeniowy PAI. Backend: FastAPI. Status szkieletu: <strong>Dzień 1</strong>.</p>
+<header>
+    <h1>Booking System</h1>
+    <p>System rezerwacji zasobów w obrębie organizacji.</p>
+</header>
+
+{% if user %}
+<article>
+    <h3>Witaj, {{ user.email }}</h3>
+    <p class="muted">Zalogowano w organizacji.</p>
+    <div class="row-actions" style="margin-top: 1rem;">
+        <a href="/app/resources" role="button">Moje zasoby</a>
+        <a href="/app/bookings" role="button">Moje rezerwacje</a>
+    </div>
+</article>
+{% else %}
+<article>
+    <h3>Zaloguj się, żeby rezerwować</h3>
+    <p class="muted">
+        Rezerwacje zasobów są dostępne tylko dla zalogowanych członków organizacji.
+        Załóż konto albo zaloguj się na istniejące.
+    </p>
+    <div class="row-actions" style="margin-top: 1rem;">
+        <a href="/login" role="button">Zaloguj</a>
+        <a href="/register" role="button" style="background: var(--paper); color: var(--chocolate); border: 1px solid var(--line);">
+            Załóż konto
+        </a>
+    </div>
+</article>
+{% endif %}
 
 <article>
-    <header><strong>Stan systemu</strong></header>
+    <h3>Stan systemu</h3>
     <div hx-get="/health" hx-trigger="load, every 10s" hx-swap="innerHTML">
         Ładowanie statusu…
     </div>
 </article>
-
-<p><a href="/docs" role="button">Otwórz Swagger</a></p>
 {% endblock %}

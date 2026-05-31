@@ -45,6 +45,7 @@
         hx-swap="none"
         hx-on::after-request="
             if (event.detail.successful) {
+                sessionStorage.setItem('toast', JSON.stringify({text: 'Zasób dodany', kind: 'success'}));
                 window.location.reload();
             } else {
                 const msg = document.getElementById('resource-form-msg');

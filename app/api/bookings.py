@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.cache import cache_invalidate_prefix
 from app.db import get_session
 from app.models.booking import Booking
 from app.models.resource import Resource
@@ -55,6 +56,9 @@ async def cancel_booking(
     booking.status = "cancelled"
     await session.commit()
     await session.refresh(booking)
+    await cache_invalidate_prefix(
+        f"availability:{booking.organization_id}:{booking.resource_id}:"
+    )
     return booking
 
 
@@ -97,4 +101,7 @@ async def create_booking(
             ) from exc
         raise
     await session.refresh(booking)
+    await cache_invalidate_prefix(
+        f"availability:{booking.organization_id}:{booking.resource_id}:"
+    )
     return booking

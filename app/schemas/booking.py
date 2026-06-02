@@ -37,3 +37,19 @@ class BookingOut(BaseModel):
     ends_at: datetime
     status: str
     notes: str | None
+
+
+class AvailabilitySlot(BaseModel):
+    starts_at: datetime
+    ends_at: datetime
+    status: str
+
+
+class AvailabilityResponse(BaseModel):
+    resource_id: uuid.UUID
+    from_: datetime = Field(alias="from")
+    to: datetime
+    busy: list[AvailabilitySlot]
+    cached: bool
+
+    model_config = ConfigDict(populate_by_name=True)

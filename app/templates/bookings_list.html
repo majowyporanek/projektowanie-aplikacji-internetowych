@@ -7,6 +7,18 @@
 
 <article>
     <h3>Lista rezerwacji</h3>
+    <div class="row-actions" style="margin-bottom: 1rem;">
+        <a href="/app/bookings?scope=mine"
+           role="button"
+           style="{% if scope != 'mine' %}background: var(--paper); color: var(--chocolate); border: 1px solid var(--line);{% endif %}">
+           Moje
+        </a>
+        <a href="/app/bookings?scope=all"
+           role="button"
+           style="{% if scope != 'all' %}background: var(--paper); color: var(--chocolate); border: 1px solid var(--line);{% endif %}">
+           Wszystkie w organizacji
+        </a>
+    </div>
     {% if bookings %}
     <table>
         <thead>
@@ -20,26 +32,49 @@
         </thead>
         <tbody>
             {% for b in bookings %}
-            <tr>
+            <tr id="booking-row-{{ b.id }}">
                 <td>{{ b.resource_name }}</td>
                 <td>{{ b.starts_at.strftime("%Y-%m-%d %H:%M") }}</td>
                 <td>{{ b.ends_at.strftime("%Y-%m-%d %H:%M") }}</td>
-                <td class="muted">{{ b.user_email }}</td>
+                <td class="muted">{{ b.user_email }}{% if b.is_mine %} <em>(ja)</em>{% endif %}</td>
                 <td>
-                    {% if b.status == "confirmed" %}
-                        <span class="badge badge-success">Potwierdzona</span>
-                    {% elif b.status == "pending" %}
-                        <span class="badge badge-warning">Oczekuje</span>
-                    {% else %}
-                        <span class="badge badge-muted">Anulowana</span>
-                    {% endif %}
+                    <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                        {% if b.status == "confirmed" %}
+                            <span class="badge badge-success">Potwierdzona</span>
+                        {% elif b.status == "pending" %}
+                            <span class="badge badge-warning">Oczekuje</span>
+                        {% else %}
+                            <span class="badge badge-muted">Anulowana</span>
+                        {% endif %}
+                        {% if b.can_cancel %}
+                        <button type="button"
+                                style="background: var(--paper); color: var(--danger-fg); border: 1px solid var(--line); padding: 0.2em 0.7em; font-size: 0.75rem; font-weight: 600; line-height: 1.4; border-radius: 999px; box-shadow: none; height: auto; width: auto; margin: 0;"
+                                hx-post="/bookings/{{ b.id }}/cancel"
+                                hx-swap="none"
+                                hx-confirm="Anulować tę rezerwację?"
+                                hx-on::after-request="
+                                    if (event.detail.successful) {
+                                        sessionStorage.setItem('toast', JSON.stringify({text: 'Rezerwacja anulowana', kind: 'success'}));
+                                        window.location.reload();
+                                    } else {
+                                        sessionStorage.setItem('toast', JSON.stringify({text: 'Nie udało się anulować (status ' + event.detail.xhr.status + ')', kind: 'error'}));
+                                        window.location.reload();
+                                    }
+                                ">
+                            Anuluj
+                        </button>
+                        {% endif %}
+                    </span>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <p class="muted">Brak rezerwacji. Stwórz pierwszą poniżej.</p>
+    <p class="muted">
+        {% if scope == 'mine' %}Nie masz jeszcze żadnych rezerwacji.{% else %}Brak rezerwacji w organizacji.{% endif %}
+        Stwórz pierwszą poniżej.
+    </p>
     {% endif %}
 </article>
 

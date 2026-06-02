@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,11 +24,38 @@ PG_CHECK_VIOLATION = "23514"
 async def list_bookings(
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
+    mine: bool = False,
 ) -> list[Booking]:
-    result = await session.scalars(
-        select(Booking).where(Booking.organization_id == user.organization_id)
-    )
+    stmt = select(Booking).where(Booking.organization_id == user.organization_id)
+    if mine:
+        stmt = stmt.where(Booking.user_id == user.id)
+    result = await session.scalars(stmt)
     return list(result)
+
+
+@router.post("/{booking_id}/cancel", response_model=BookingOut)
+async def cancel_booking(
+    booking_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> Booking:
+    booking = await session.get(Booking, booking_id)
+    if booking is None or booking.organization_id != user.organization_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Booking not found")
+    if booking.user_id != user.id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "You can only cancel your own bookings"
+        )
+    if booking.status == "cancelled":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Booking is already cancelled")
+    if booking.starts_at <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Cannot cancel a booking that has already started"
+        )
+    booking.status = "cancelled"
+    await session.commit()
+    await session.refresh(booking)
+    return booking
 
 
 @router.post("", response_model=BookingOut, status_code=status.HTTP_201_CREATED)

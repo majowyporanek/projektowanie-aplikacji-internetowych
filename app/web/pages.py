@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
@@ -42,17 +43,25 @@ async def bookings_page(
     request: Request,
     user: Annotated[User | None, Depends(get_current_user_optional)],
     session: Annotated[AsyncSession, Depends(get_session)],
+    scope: str = "mine",
 ):
     if user is None:
         return RedirectResponse("/login", status_code=303)
 
-    rows = await session.execute(
+    scope = scope if scope in ("mine", "all") else "mine"
+
+    stmt = (
         select(Booking, Resource.name, User.email)
         .join(Resource, Booking.resource_id == Resource.id)
         .join(User, Booking.user_id == User.id)
         .where(Booking.organization_id == user.organization_id)
         .order_by(Booking.starts_at.desc())
     )
+    if scope == "mine":
+        stmt = stmt.where(Booking.user_id == user.id)
+
+    rows = await session.execute(stmt)
+    now = datetime.now(timezone.utc)
     bookings = [
         {
             "id": b.id,
@@ -62,6 +71,12 @@ async def bookings_page(
             "ends_at": b.ends_at,
             "status": b.status,
             "notes": b.notes,
+            "is_mine": b.user_id == user.id,
+            "can_cancel": (
+                b.user_id == user.id
+                and b.status != "cancelled"
+                and b.starts_at > now
+            ),
         }
         for b, resource_name, user_email in rows.all()
     ]
@@ -83,5 +98,6 @@ async def bookings_page(
             "bookings": bookings,
             "resources": list(resources),
             "user": user,
+            "scope": scope,
         },
     )

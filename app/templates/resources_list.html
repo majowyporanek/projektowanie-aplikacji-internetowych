@@ -2,7 +2,14 @@
 {% block content %}
 <header>
     <h1>Zasoby</h1>
-    <p class="muted">Zalogowano jako <strong>{{ user.email }}</strong></p>
+    <p class="muted">
+        Zalogowano jako <strong>{{ user.email }}</strong>
+        {% if user.role == "admin" %}
+            <span class="badge badge-success">admin</span>
+        {% else %}
+            <span class="badge badge-muted">member</span>
+        {% endif %}
+    </p>
 </header>
 
 <article>
@@ -37,6 +44,7 @@
     {% endif %}
 </article>
 
+{% if user.role == "admin" %}
 <article>
     <h3>Dodaj nowy zasób</h3>
     <form
@@ -66,4 +74,12 @@
         <div id="resource-form-msg" class="form-msg"></div>
     </form>
 </article>
+{% else %}
+<article>
+    <p class="muted">
+        Tylko administrator organizacji może dodawać zasoby.
+        Skontaktuj się z osobą, która utworzyła Twoją organizację.
+    </p>
+</article>
+{% endif %}
 {% endblock %}

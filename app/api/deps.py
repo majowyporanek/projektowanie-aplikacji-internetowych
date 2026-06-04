@@ -54,3 +54,13 @@ async def get_current_org(
     if org is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Organization not found")
     return org
+
+
+async def require_admin(
+    user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    if user.role != "admin":
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "Admin role required for this operation"
+        )
+    return user

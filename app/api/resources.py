@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_admin
 from app.cache import cache_get_json, cache_set_json
 from app.db import get_session
 from app.models.booking import Booking
@@ -109,7 +109,7 @@ async def get_resource_availability(
 @router.post("", response_model=ResourceOut, status_code=status.HTTP_201_CREATED)
 async def create_resource(
     payload: ResourceCreate,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(require_admin)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Resource:
     resource = Resource(
@@ -128,7 +128,7 @@ async def create_resource(
 async def update_resource(
     resource_id: uuid.UUID,
     payload: ResourceUpdate,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(require_admin)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Resource:
     resource = await _get_owned_resource(resource_id, user, session)
@@ -142,7 +142,7 @@ async def update_resource(
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_resource(
     resource_id: uuid.UUID,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(require_admin)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Response:
     resource = await _get_owned_resource(resource_id, user, session)

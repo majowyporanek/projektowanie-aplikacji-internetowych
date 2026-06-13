@@ -20,6 +20,7 @@
                 <th>Nazwa</th>
                 <th>Opis</th>
                 <th>Status</th>
+                {% if user.role == "admin" %}<th></th>{% endif %}
             </tr>
         </thead>
         <tbody>
@@ -34,6 +35,56 @@
                         <span class="badge badge-muted">Nieaktywny</span>
                     {% endif %}
                 </td>
+                {% if user.role == "admin" %}
+                <td>
+                    <details>
+                        <summary style="cursor: pointer; color: var(--ink-soft); font-size: 0.9rem;">edytuj</summary>
+                        <form
+                            hx-patch="/resources/{{ r.id }}"
+                            hx-ext="json-enc"
+                            hx-swap="none"
+                            hx-on::after-request="
+                                if (event.detail.successful) {
+                                    sessionStorage.setItem('toast', JSON.stringify({text: 'Zapisano', kind: 'success'}));
+                                    window.location.reload();
+                                } else {
+                                    sessionStorage.setItem('toast', JSON.stringify({text: 'Nie udało się zapisać (status ' + event.detail.xhr.status + ')', kind: 'error'}));
+                                    window.location.reload();
+                                }
+                            "
+                            style="margin-top: 0.75rem;"
+                        >
+                            <label>
+                                Nazwa
+                                <input type="text" name="name" value="{{ r.name }}" required minlength="1" maxlength="120">
+                            </label>
+                            <label>
+                                Opis
+                                <input type="text" name="description" value="{{ r.description or '' }}">
+                            </label>
+                            <div class="row-actions" style="margin-top: 0.5rem;">
+                                <button type="submit" style="width: auto;">Zapisz</button>
+                                <button type="button"
+                                        class="btn-secondary"
+                                        style="width: auto;"
+                                        hx-patch="/resources/{{ r.id }}"
+                                        hx-ext="json-enc"
+                                        hx-vals='{"is_active": {{ "false" if r.is_active else "true" }}}'
+                                        hx-swap="none"
+                                        hx-confirm="{% if r.is_active %}Dezaktywować ten zasób? Nowych rezerwacji nie da się tworzyć.{% else %}Przywrócić aktywność?{% endif %}"
+                                        hx-on::after-request="
+                                            if (event.detail.successful) {
+                                                sessionStorage.setItem('toast', JSON.stringify({text: '{% if r.is_active %}Zasób dezaktywowany{% else %}Zasób aktywowany{% endif %}', kind: 'success'}));
+                                                window.location.reload();
+                                            }
+                                        ">
+                                    {% if r.is_active %}Dezaktywuj{% else %}Aktywuj{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </details>
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>

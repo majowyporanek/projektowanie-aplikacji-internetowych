@@ -24,24 +24,34 @@ from app.models.user import User  # noqa: E402
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def _reset_redis_singleton():
-    """Redis async client jest bound do event loopa w którym powstał.
-    Pytest-asyncio rotuje event loopy między testami, więc resetujemy singleton
-    przed każdym testem - client zostanie odtworzony przy pierwszym wywołaniu.
+async def _reset_async_state():
+    """Redis client i SQLAlchemy engine są bound do event loopa w którym powstały.
+    Pytest-asyncio rotuje event loopy między testami, więc:
+    - resetujemy Redis singleton (odtworzy się przy pierwszym get_redis())
+    - dispose'ujemy engine connection pool po teście (NullPool i tak nie cachuje,
+      ale dispose czyści state engine'a i jego event-loop refs).
     """
+    # Reset before
     if _cache._redis is not None:
         try:
             await _cache._redis.aclose()
         except Exception:
             pass
         _cache._redis = None
+
     yield
+
+    # Cleanup after
     if _cache._redis is not None:
         try:
             await _cache._redis.aclose()
         except Exception:
             pass
         _cache._redis = None
+    try:
+        await _test_engine.dispose()
+    except Exception:
+        pass
 
 
 @pytest_asyncio.fixture

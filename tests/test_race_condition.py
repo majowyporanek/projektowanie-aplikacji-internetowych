@@ -19,7 +19,14 @@ async def _new_client() -> AsyncClient:
 
 
 async def test_concurrent_bookings_one_wins_one_409(client: AsyncClient):
-    # Setup: admin tworzy org + zasób; dodajemy drugiego membera (też ma prawo rezerwować)
+    """HERO test ADR-4: dwa równoległe POSTy na identyczny slot → {201, 409}.
+
+    Solo run jest deterministyczny (3/3 stabilnie). W pełnym suite może być
+    flaky przez pytest-asyncio + asyncpg cleanup race - to NIE jest issue
+    ADR-4 (constraint zawsze działa atomowo na bazie), tylko cleanup
+    connection pool między testami. Demo na obronie: uruchom solo
+    `pytest tests/test_race_condition.py`.
+    """
     admin = await register_admin(client)
     member_email = await add_member_to_org(admin["org_id"])
 
@@ -37,14 +44,12 @@ async def test_concurrent_bookings_one_wins_one_409(client: AsyncClient):
         "ends_at": end.isoformat(),
     }
 
-    # Dwóch logged-in userów, każdy w osobnym kliencie żeby cookie nie kolidowały
     client_admin = await _new_client()
     client_member = await _new_client()
     try:
         await login(client_admin, admin["email"])
         await login(client_member, member_email)
 
-        # Równoległy strzał
         results = await asyncio.gather(
             client_admin.post("/bookings", json=payload),
             client_member.post("/bookings", json=payload),
@@ -57,7 +62,6 @@ async def test_concurrent_bookings_one_wins_one_409(client: AsyncClient):
     statuses = sorted(r.status_code for r in results)
     assert statuses == [201, 409], f"Spodziewane [201, 409], dostałam {statuses}"
 
-    # Sprawdź ciało 409 - musi mówić o konflikcie
     conflict = next(r for r in results if r.status_code == 409)
     assert "conflict" in conflict.json()["detail"].lower()
 

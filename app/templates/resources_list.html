@@ -13,7 +13,6 @@
 </header>
 
 <article>
-    <h3>Lista zasobów</h3>
     {% if resources %}
     <table>
         <thead>
@@ -40,46 +39,45 @@
         </tbody>
     </table>
     {% else %}
-    <p class="muted">Brak zasobów. Dodaj pierwszy poniżej.</p>
+    <p class="muted">Brak zasobów w Twojej organizacji.</p>
+    {% endif %}
+
+    {% if user.role == "admin" %}
+    <hr class="separator">
+    <details>
+        <summary><strong>Dodaj zasób</strong></summary>
+        <form
+            hx-post="/resources"
+            hx-ext="json-enc"
+            hx-swap="none"
+            hx-on::after-request="
+                if (event.detail.successful) {
+                    sessionStorage.setItem('toast', JSON.stringify({text: 'Zasób dodany', kind: 'success'}));
+                    window.location.reload();
+                } else {
+                    const msg = document.getElementById('resource-form-msg');
+                    msg.className = 'form-msg error';
+                    msg.textContent = 'Nie udało się dodać zasobu (status ' + event.detail.xhr.status + ')';
+                }
+            "
+            style="margin-top: 1rem;"
+        >
+            <label>
+                Nazwa
+                <input type="text" name="name" required minlength="1" maxlength="120" placeholder="np. Sala A">
+            </label>
+            <label>
+                Opis
+                <input type="text" name="description" placeholder="np. salka na 8 osób">
+            </label>
+            <button type="submit" style="width: auto;">Dodaj</button>
+            <div id="resource-form-msg" class="form-msg"></div>
+        </form>
+    </details>
+    {% else %}
+    <p class="muted" style="margin-top: 1rem; font-size: 0.9rem;">
+        Tylko admin organizacji może dodawać zasoby.
+    </p>
     {% endif %}
 </article>
-
-{% if user.role == "admin" %}
-<article>
-    <h3>Dodaj nowy zasób</h3>
-    <form
-        hx-post="/resources"
-        hx-ext="json-enc"
-        hx-swap="none"
-        hx-on::after-request="
-            if (event.detail.successful) {
-                sessionStorage.setItem('toast', JSON.stringify({text: 'Zasób dodany', kind: 'success'}));
-                window.location.reload();
-            } else {
-                const msg = document.getElementById('resource-form-msg');
-                msg.className = 'form-msg error';
-                msg.textContent = 'Nie udało się dodać zasobu (status ' + event.detail.xhr.status + ')';
-            }
-        "
-    >
-        <label>
-            Nazwa
-            <input type="text" name="name" required minlength="1" maxlength="120" placeholder="np. Sala A">
-        </label>
-        <label>
-            Opis (opcjonalny)
-            <input type="text" name="description" placeholder="np. Salka konferencyjna na 8 osób">
-        </label>
-        <button type="submit">Dodaj zasób</button>
-        <div id="resource-form-msg" class="form-msg"></div>
-    </form>
-</article>
-{% else %}
-<article>
-    <p class="muted">
-        Tylko administrator organizacji może dodawać zasoby.
-        Skontaktuj się z osobą, która utworzyła Twoją organizację.
-    </p>
-</article>
-{% endif %}
 {% endblock %}

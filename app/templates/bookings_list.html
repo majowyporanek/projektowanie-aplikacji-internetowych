@@ -21,7 +21,7 @@
         </a>
     </div>
 
-    <form method="get" action="/app/bookings" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);">
+    <form method="get" action="/app/bookings" class="filters">
         <input type="hidden" name="scope" value="{{ scope }}">
         <input type="hidden" name="sort" value="{{ sort }}">
         <input type="hidden" name="dir" value="{{ dir }}">
@@ -29,31 +29,28 @@
             <label>
                 Zasób
                 <select name="resource">
-                    <option value="">Wszystkie</option>
+                    <option value="">— wszystkie —</option>
                     {% for r in resources %}
                     <option value="{{ r.id }}" {% if resource_id == r.id|string %}selected{% endif %}>{{ r.name }}</option>
                     {% endfor %}
                 </select>
             </label>
             <label>
-                Zakres czasowy
+                Kiedy
                 <select name="when">
                     <option value="upcoming" {% if when == 'upcoming' %}selected{% endif %}>Nadchodzące</option>
-                    <option value="all" {% if when == 'all' %}selected{% endif %}>Wszystkie</option>
                     <option value="past" {% if when == 'past' %}selected{% endif %}>Przeszłe</option>
+                    <option value="all" {% if when == 'all' %}selected{% endif %}>Wszystkie</option>
                 </select>
             </label>
             <label>
-                Szukaj w notatkach
-                <input type="search" name="q" value="{{ q }}" placeholder="np. standup">
+                Notatka
+                <input type="search" name="q" value="{{ q }}" placeholder="szukaj fragmentu…">
             </label>
         </div>
-        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+        <div class="filters-actions">
             <button type="submit" style="width: auto; margin: 0;">Filtruj</button>
-            <a href="/app/bookings?scope={{ scope }}" role="button"
-               style="width: auto; margin: 0; background: var(--paper); color: var(--chocolate); border: 1px solid var(--line);">
-                Wyczyść
-            </a>
+            <a class="reset-link" href="/app/bookings?scope={{ scope }}">wyczyść filtry</a>
         </div>
     </form>
 
@@ -65,23 +62,20 @@
                 {% set _starts_active = sort == 'starts_at' %}
                 {% set _ends_active = sort == 'ends_at' %}
                 {% set _status_active = sort == 'status' %}
-                <th>
-                    <a href="{{ url_with(sort='starts_at', dir=('desc' if _starts_active and dir == 'asc' else 'asc')) }}"
-                       style="color: inherit; text-decoration: none;">
-                        Od {% if _starts_active %}{{ '↑' if dir == 'asc' else '↓' }}{% endif %}
+                <th class="sortable">
+                    <a href="{{ url_with(sort='starts_at', dir=('desc' if _starts_active and dir == 'asc' else 'asc')) }}">
+                        Od{% if _starts_active %} <span aria-hidden="true">{{ '↑' if dir == 'asc' else '↓' }}</span>{% endif %}
                     </a>
                 </th>
-                <th>
-                    <a href="{{ url_with(sort='ends_at', dir=('desc' if _ends_active and dir == 'asc' else 'asc')) }}"
-                       style="color: inherit; text-decoration: none;">
-                        Do {% if _ends_active %}{{ '↑' if dir == 'asc' else '↓' }}{% endif %}
+                <th class="sortable">
+                    <a href="{{ url_with(sort='ends_at', dir=('desc' if _ends_active and dir == 'asc' else 'asc')) }}">
+                        Do{% if _ends_active %} <span aria-hidden="true">{{ '↑' if dir == 'asc' else '↓' }}</span>{% endif %}
                     </a>
                 </th>
                 <th>Kto</th>
-                <th>
-                    <a href="{{ url_with(sort='status', dir=('desc' if _status_active and dir == 'asc' else 'asc')) }}"
-                       style="color: inherit; text-decoration: none;">
-                        Status {% if _status_active %}{{ '↑' if dir == 'asc' else '↓' }}{% endif %}
+                <th class="sortable">
+                    <a href="{{ url_with(sort='status', dir=('desc' if _status_active and dir == 'asc' else 'asc')) }}">
+                        Status{% if _status_active %} <span aria-hidden="true">{{ '↑' if dir == 'asc' else '↓' }}</span>{% endif %}
                     </a>
                 </th>
             </tr>

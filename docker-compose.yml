@@ -39,6 +39,8 @@ services:
     volumes:
       - ./app:/app/app
       - ./alembic:/app/alembic
+      - ./tests:/app/tests
+      - ./pyproject.toml:/app/pyproject.toml
     ports:
       - "8000:8000"
     command: >

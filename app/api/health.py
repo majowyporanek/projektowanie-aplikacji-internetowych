@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import get_session
+from app.version import APP_VERSION
 
 router = APIRouter(tags=["health"])
 
@@ -28,6 +29,7 @@ async def health(session: AsyncSession = Depends(get_session)) -> dict[str, str]
 
     return {
         "status": "ok" if db_ok and redis_ok else "degraded",
+        "version": APP_VERSION,
         "db": "ok" if db_ok else "down",
         "redis": "ok" if redis_ok else "down",
     }

@@ -109,7 +109,7 @@
                         {% endif %}
                         {% if b.can_cancel %}
                         <button type="button"
-                                style="background: var(--paper); color: var(--danger-fg); border: 1px solid var(--line); padding: 0.2em 0.7em; font-size: 0.75rem; font-weight: 600; line-height: 1.4; border-radius: 999px; box-shadow: none; height: auto; width: auto; margin: 0;"
+                                class="pill pill-danger"
                                 hx-post="/bookings/{{ b.id }}/cancel"
                                 hx-swap="none"
                                 hx-confirm="Anulować tę rezerwację?"
@@ -126,10 +126,8 @@
                         </button>
                         {% endif %}
                         {% if b.can_cancel and not b.resource_active %}
-                        <details style="display: inline-block;">
-                            <summary style="cursor: pointer; color: var(--ink-soft); font-size: 0.75rem; padding: 0.2em 0.7em; border: 1px solid var(--line); border-radius: 999px;">
-                                zmień zasób
-                            </summary>
+                        <details class="inline-pill">
+                            <summary class="pill">zmień zasób</summary>
                             <form
                                 hx-patch="/bookings/{{ b.id }}"
                                 hx-ext="json-enc"

@@ -228,6 +228,42 @@
             letter-spacing: 0.01em;
             line-height: 1.4;
         }
+
+        /* Tag-pill kształt jak badge, ale klikalny (button albo <summary>).
+           Ujednolica wyrównanie obok badge'y w komórkach tabel. */
+        .pill {
+            display: inline-block;
+            padding: 0.2em 0.7em;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1.4;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--paper);
+            color: var(--ink-soft);
+            cursor: pointer;
+            box-shadow: none;
+            height: auto;
+            width: auto;
+            margin: 0;
+            list-style: none;  /* Firefox: ukryj domyślny marker summary */
+        }
+        .pill::-webkit-details-marker { display: none; }
+        .pill::marker { content: ""; }
+        .pill.pill-danger { color: var(--danger-fg); }
+        .pill:hover { background: var(--cream); }
+
+        /* Pico domyślnie dodaje details padding-bottom + border-bottom + margin
+           dla stylu "accordion". W kontekście inline-flex (komórka tabeli z badge'ami
+           i przyciskami) to psuje wyrównanie. Resetujemy. */
+        details.inline-pill {
+            display: inline-block;
+            margin: 0;
+            padding: 0;
+            border: none;
+            vertical-align: middle;
+        }
+        details.inline-pill > summary { vertical-align: middle; }
         .badge-success { background: var(--success-bg); color: var(--success-fg); }
         .badge-warning { background: var(--warning-bg); color: var(--warning-fg); }
         .badge-muted   { background: var(--line); color: var(--ink-soft); }

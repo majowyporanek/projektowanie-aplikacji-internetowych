@@ -29,11 +29,18 @@
                 <td>{{ r.name }}</td>
                 <td>{{ r.description or "—" }}</td>
                 <td>
-                    {% if r.is_active %}
-                        <span class="badge badge-success">Aktywny</span>
-                    {% else %}
-                        <span class="badge badge-muted">Nieaktywny</span>
-                    {% endif %}
+                    <span style="display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        {% if r.is_active %}
+                            <span class="badge badge-success">Aktywny</span>
+                        {% else %}
+                            <span class="badge badge-muted">Nieaktywny</span>
+                        {% endif %}
+                        {% if r.active_bookings_count > 0 %}
+                            <span class="badge badge-muted" title="Liczba przyszłych aktywnych rezerwacji">
+                                {{ r.active_bookings_count }} rezerw.
+                            </span>
+                        {% endif %}
+                    </span>
                 </td>
                 {% if user.role == "admin" %}
                 <td>
@@ -62,24 +69,77 @@
                                 Opis
                                 <input type="text" name="description" value="{{ r.description or '' }}">
                             </label>
-                            <div class="row-actions" style="margin-top: 0.5rem;">
+                            <div class="row-actions" style="margin-top: 0.5rem; flex-wrap: wrap;">
                                 <button type="submit" style="width: auto;">Zapisz</button>
+
+                                {% if not r.is_active %}
                                 <button type="button"
                                         class="btn-secondary"
                                         style="width: auto;"
                                         hx-patch="/resources/{{ r.id }}"
                                         hx-ext="json-enc"
-                                        hx-vals='{"is_active": {{ "false" if r.is_active else "true" }}}'
+                                        hx-vals='{"is_active": true}'
                                         hx-swap="none"
-                                        hx-confirm="{% if r.is_active %}Dezaktywować ten zasób? Nowych rezerwacji nie da się tworzyć.{% else %}Przywrócić aktywność?{% endif %}"
                                         hx-on::after-request="
                                             if (event.detail.successful) {
-                                                sessionStorage.setItem('toast', JSON.stringify({text: '{% if r.is_active %}Zasób dezaktywowany{% else %}Zasób aktywowany{% endif %}', kind: 'success'}));
+                                                sessionStorage.setItem('toast', JSON.stringify({text: 'Zasób aktywowany', kind: 'success'}));
                                                 window.location.reload();
                                             }
                                         ">
-                                    {% if r.is_active %}Dezaktywuj{% else %}Aktywuj{% endif %}
+                                    Aktywuj
                                 </button>
+                                {% elif r.active_bookings_count == 0 %}
+                                <button type="button"
+                                        class="btn-secondary"
+                                        style="width: auto;"
+                                        hx-post="/resources/{{ r.id }}/deactivate"
+                                        hx-ext="json-enc"
+                                        hx-vals='{"cancel_bookings": false}'
+                                        hx-swap="none"
+                                        hx-confirm="Dezaktywować ten zasób? Nowych rezerwacji nie da się tworzyć."
+                                        hx-on::after-request="
+                                            if (event.detail.successful) {
+                                                sessionStorage.setItem('toast', JSON.stringify({text: 'Zasób dezaktywowany', kind: 'success'}));
+                                                window.location.reload();
+                                            }
+                                        ">
+                                    Dezaktywuj
+                                </button>
+                                {% else %}
+                                <button type="button"
+                                        class="btn-secondary"
+                                        style="width: auto;"
+                                        hx-post="/resources/{{ r.id }}/deactivate"
+                                        hx-ext="json-enc"
+                                        hx-vals='{"cancel_bookings": false}'
+                                        hx-swap="none"
+                                        hx-confirm="Dezaktywować zasób, zostawiając {{ r.active_bookings_count }} aktywnych rezerwacji nietknięte?"
+                                        hx-on::after-request="
+                                            if (event.detail.successful) {
+                                                sessionStorage.setItem('toast', JSON.stringify({text: 'Zasób dezaktywowany ({{ r.active_bookings_count }} rezerwacji pozostało)', kind: 'warning'}));
+                                                window.location.reload();
+                                            }
+                                        ">
+                                    Dezaktywuj (zostaw rezerwacje)
+                                </button>
+                                <button type="button"
+                                        class="btn-secondary"
+                                        style="width: auto; color: var(--danger-fg);"
+                                        hx-post="/resources/{{ r.id }}/deactivate"
+                                        hx-ext="json-enc"
+                                        hx-vals='{"cancel_bookings": true}'
+                                        hx-swap="none"
+                                        hx-confirm="UWAGA: dezaktywować i ANULOWAĆ {{ r.active_bookings_count }} przyszłych rezerwacji?"
+                                        hx-on::after-request="
+                                            if (event.detail.successful) {
+                                                const data = JSON.parse(event.detail.xhr.responseText);
+                                                sessionStorage.setItem('toast', JSON.stringify({text: 'Dezaktywowano + anulowano ' + data.cancelled_count + ' rezerwacji', kind: 'success'}));
+                                                window.location.reload();
+                                            }
+                                        ">
+                                    Anuluj rezerw. + dezaktywuj
+                                </button>
+                                {% endif %}
                             </div>
                         </form>
                     </details>

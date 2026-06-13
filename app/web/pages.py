@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_optional
@@ -28,15 +28,41 @@ async def resources_page(
 ):
     if user is None:
         return RedirectResponse("/login", status_code=303)
-    result = await session.scalars(
-        select(Resource)
+
+    now = datetime.now(timezone.utc)
+    active_bookings_subq = (
+        select(Booking.resource_id, func.count().label("active_count"))
+        .where(
+            Booking.status.in_(("pending", "confirmed")),
+            Booking.starts_at > now,
+        )
+        .group_by(Booking.resource_id)
+        .subquery()
+    )
+    stmt = (
+        select(Resource, func.coalesce(active_bookings_subq.c.active_count, 0))
+        .outerjoin(
+            active_bookings_subq,
+            Resource.id == active_bookings_subq.c.resource_id,
+        )
         .where(Resource.organization_id == user.organization_id)
         .order_by(Resource.name)
     )
+    rows = (await session.execute(stmt)).all()
+    resources = [
+        {
+            "id": r.id,
+            "name": r.name,
+            "description": r.description,
+            "is_active": r.is_active,
+            "active_bookings_count": int(active_count),
+        }
+        for r, active_count in rows
+    ]
     return templates.TemplateResponse(
         request,
         "resources_list.html",
-        {"title": "Zasoby", "resources": list(result), "user": user},
+        {"title": "Zasoby", "resources": resources, "user": user},
     )
 
 
@@ -77,7 +103,7 @@ async def bookings_page(
             resource_uuid = None
 
     stmt = (
-        select(Booking, Resource.name, User.email)
+        select(Booking, Resource.name, Resource.is_active, User.email)
         .join(Resource, Booking.resource_id == Resource.id)
         .join(User, Booking.user_id == User.id)
         .where(Booking.organization_id == user.organization_id)
@@ -104,6 +130,7 @@ async def bookings_page(
         {
             "id": b.id,
             "resource_name": resource_name,
+            "resource_active": resource_active,
             "user_email": user_email,
             "starts_at": b.starts_at,
             "ends_at": b.ends_at,
@@ -116,7 +143,7 @@ async def bookings_page(
                 and b.starts_at > now
             ),
         }
-        for b, resource_name, user_email in rows.all()
+        for b, resource_name, resource_active, user_email in rows.all()
     ]
 
     resources = await session.scalars(

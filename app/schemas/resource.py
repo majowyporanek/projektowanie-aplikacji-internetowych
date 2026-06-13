@@ -23,3 +23,12 @@ class ResourceOut(BaseModel):
     name: str
     description: str | None
     is_active: bool
+
+
+class DeactivateResourceRequest(BaseModel):
+    cancel_bookings: bool = False
+
+
+class DeactivateResourceResponse(BaseModel):
+    resource: ResourceOut
+    cancelled_count: int

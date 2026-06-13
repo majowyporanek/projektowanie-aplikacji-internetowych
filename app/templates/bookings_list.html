@@ -88,13 +88,16 @@
                 <td>{{ b.ends_at.strftime("%Y-%m-%d %H:%M") }}</td>
                 <td class="muted">{{ b.user_email }}{% if b.is_mine %} <em>(ja)</em>{% endif %}</td>
                 <td>
-                    <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <span style="display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                         {% if b.status == "confirmed" %}
                             <span class="badge badge-success">Potwierdzona</span>
                         {% elif b.status == "pending" %}
                             <span class="badge badge-warning">Oczekuje</span>
                         {% else %}
                             <span class="badge badge-muted">Anulowana</span>
+                        {% endif %}
+                        {% if not b.resource_active and b.status != "cancelled" %}
+                            <span class="badge badge-danger" title="Zasób został dezaktywowany — spotkanie może się nie odbyć">Zasób nieaktywny</span>
                         {% endif %}
                         {% if b.can_cancel %}
                         <button type="button"

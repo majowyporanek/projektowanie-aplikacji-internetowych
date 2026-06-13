@@ -1,19 +1,25 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_admin
-from app.cache import cache_get_json, cache_set_json
+from app.cache import cache_get_json, cache_invalidate_prefix, cache_set_json
 from app.db import get_session
 from app.models.booking import Booking
 from app.models.resource import Resource
 from app.models.user import User
 from app.schemas.booking import AvailabilityResponse, AvailabilitySlot
-from app.schemas.resource import ResourceCreate, ResourceOut, ResourceUpdate
+from app.schemas.resource import (
+    DeactivateResourceRequest,
+    DeactivateResourceResponse,
+    ResourceCreate,
+    ResourceOut,
+    ResourceUpdate,
+)
 
 AVAILABILITY_CACHE_TTL = 60
 
@@ -137,6 +143,50 @@ async def update_resource(
     await session.commit()
     await session.refresh(resource)
     return resource
+
+
+@router.post("/{resource_id}/deactivate", response_model=DeactivateResourceResponse)
+async def deactivate_resource(
+    resource_id: uuid.UUID,
+    payload: DeactivateResourceRequest,
+    user: Annotated[User, Depends(require_admin)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> DeactivateResourceResponse:
+    """Dezaktywuje zasób + opcjonalnie cascade-cancel'uje przyszłe pending/confirmed bookingi.
+
+    Świadomy wybór: nie ruszamy przeszłych ani już anulowanych - przeszłe to historia
+    (audyt kto kiedy korzystał), anulowane to terminal state.
+    """
+    resource = await _get_owned_resource(resource_id, user, session)
+    resource.is_active = False
+
+    cancelled_count = 0
+    if payload.cancel_bookings:
+        now = datetime.now(timezone.utc)
+        result = await session.execute(
+            update(Booking)
+            .where(
+                Booking.organization_id == user.organization_id,
+                Booking.resource_id == resource_id,
+                Booking.status.in_(("pending", "confirmed")),
+                Booking.starts_at > now,
+            )
+            .values(status="cancelled")
+        )
+        cancelled_count = result.rowcount or 0
+
+    await session.commit()
+    await session.refresh(resource)
+
+    if cancelled_count > 0:
+        await cache_invalidate_prefix(
+            f"availability:{user.organization_id}:{resource_id}:"
+        )
+
+    return DeactivateResourceResponse(
+        resource=ResourceOut.model_validate(resource),
+        cancelled_count=cancelled_count,
+    )
 
 
 @router.delete("/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)

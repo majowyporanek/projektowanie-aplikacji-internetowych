@@ -80,7 +80,6 @@ async def create_booking(
         user_id=user.id,
         starts_at=payload.starts_at,
         ends_at=payload.ends_at,
-        status=payload.status,
         notes=payload.notes,
     )
     session.add(booking)

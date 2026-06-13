@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -9,7 +8,6 @@ class BookingCreate(BaseModel):
     resource_id: uuid.UUID
     starts_at: datetime
     ends_at: datetime
-    status: Literal["pending", "confirmed"] = "confirmed"
     notes: str | None = Field(default=None, max_length=2000)
 
     @field_validator("starts_at", "ends_at")

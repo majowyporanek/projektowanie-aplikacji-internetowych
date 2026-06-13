@@ -44,6 +44,14 @@
                 </select>
             </label>
             <label>
+                Status zasobu
+                <select name="resource_status">
+                    <option value="all" {% if resource_status == 'all' %}selected{% endif %}>— wszystkie —</option>
+                    <option value="active" {% if resource_status == 'active' %}selected{% endif %}>Tylko aktywne</option>
+                    <option value="inactive" {% if resource_status == 'inactive' %}selected{% endif %}>Tylko nieaktywne (wymagają akcji)</option>
+                </select>
+            </label>
+            <label>
                 Notatka
                 <input type="search" name="q" value="{{ q }}" placeholder="szukaj fragmentu…">
             </label>
@@ -116,6 +124,38 @@
                                 ">
                             Anuluj
                         </button>
+                        {% endif %}
+                        {% if b.can_cancel and not b.resource_active %}
+                        <details style="display: inline-block;">
+                            <summary style="cursor: pointer; color: var(--ink-soft); font-size: 0.75rem; padding: 0.2em 0.7em; border: 1px solid var(--line); border-radius: 999px;">
+                                zmień zasób
+                            </summary>
+                            <form
+                                hx-patch="/bookings/{{ b.id }}"
+                                hx-ext="json-enc"
+                                hx-swap="none"
+                                hx-on::after-request="
+                                    if (event.detail.successful) {
+                                        sessionStorage.setItem('toast', JSON.stringify({text: 'Rezerwacja przeniesiona', kind: 'success'}));
+                                        window.location.reload();
+                                    } else if (event.detail.xhr.status === 409) {
+                                        sessionStorage.setItem('toast', JSON.stringify({text: 'Slot zajęty na docelowym zasobie', kind: 'error'}));
+                                        window.location.reload();
+                                    } else {
+                                        sessionStorage.setItem('toast', JSON.stringify({text: 'Błąd (status ' + event.detail.xhr.status + ')', kind: 'error'}));
+                                        window.location.reload();
+                                    }
+                                "
+                                style="margin-top: 0.5rem; min-width: 14rem;"
+                            >
+                                <select name="resource_id" required style="margin-bottom: 0.5rem;">
+                                    {% for r in resources %}
+                                    <option value="{{ r.id }}">{{ r.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" style="width: auto; padding: 0.35em 0.9em; font-size: 0.8rem;">Przenieś</button>
+                            </form>
+                        </details>
                         {% endif %}
                     </span>
                 </td>

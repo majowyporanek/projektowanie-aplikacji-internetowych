@@ -24,6 +24,10 @@ class BookingCreate(BaseModel):
         return self
 
 
+class BookingUpdate(BaseModel):
+    resource_id: uuid.UUID
+
+
 class BookingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

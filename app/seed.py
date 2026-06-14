@@ -152,8 +152,8 @@ async def seed() -> None:
                 user_id=alice.id,
                 starts_at=h + timedelta(days=3, hours=10),
                 ends_at=h + timedelta(days=3, hours=11),
-                status="pending",
-                notes="Wstępna rezerwacja",
+                status="confirmed",
+                notes="Sync z marketingiem",
             ),
             Booking(
                 organization_id=acme.id,
@@ -188,7 +188,8 @@ async def seed() -> None:
                 user_id=dave.id,
                 starts_at=h + timedelta(days=5, hours=11),
                 ends_at=h + timedelta(days=5, hours=13),
-                status="pending",
+                status="confirmed",
+                notes="Sesja z zespołem",
             ),
         ]
         s.add_all(bookings)

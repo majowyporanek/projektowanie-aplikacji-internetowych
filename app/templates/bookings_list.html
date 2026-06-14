@@ -44,11 +44,12 @@
                 </select>
             </label>
             <label>
-                Status zasobu
-                <select name="resource_status">
-                    <option value="all" {% if resource_status == 'all' %}selected{% endif %}>— wszystkie —</option>
-                    <option value="active" {% if resource_status == 'active' %}selected{% endif %}>Tylko aktywne</option>
-                    <option value="inactive" {% if resource_status == 'inactive' %}selected{% endif %}>Tylko nieaktywne (wymagają akcji)</option>
+                Status
+                <select name="status">
+                    <option value="all" {% if status == 'all' %}selected{% endif %}>— wszystkie —</option>
+                    <option value="confirmed" {% if status == 'confirmed' %}selected{% endif %}>Potwierdzone</option>
+                    <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Anulowane</option>
+                    <option value="needs_action" {% if status == 'needs_action' %}selected{% endif %}>Wymagają akcji</option>
                 </select>
             </label>
             <label>
@@ -162,64 +163,75 @@
         </tbody>
     </table>
     {% else %}
+    {% set _has_filters = resource_id or status != 'all' or when != 'upcoming' or q %}
     <p class="muted">
-        {% if scope == 'mine' %}Nie masz jeszcze żadnych rezerwacji.{% else %}Brak rezerwacji w organizacji.{% endif %}
-        Stwórz pierwszą poniżej.
+        {% if _has_filters %}
+            Żadna rezerwacja nie pasuje do aktywnych filtrów.
+            <a class="reset-link" href="/app/bookings?scope={{ scope }}">wyczyść filtry</a>
+        {% elif scope == 'mine' %}
+            Nie masz jeszcze żadnych rezerwacji. Rozwiń "Nowa rezerwacja" poniżej, żeby dodać pierwszą.
+        {% else %}
+            Brak rezerwacji w organizacji. Rozwiń "Nowa rezerwacja" poniżej, żeby dodać pierwszą.
+        {% endif %}
     </p>
     {% endif %}
-</article>
 
-<article>
-    <h3>Nowa rezerwacja</h3>
+    <hr class="separator">
     {% if resources %}
-    <form
-        hx-post="/bookings"
-        hx-ext="json-enc"
-        hx-swap="none"
-        hx-on::after-request="
-            const msg = document.getElementById('booking-form-msg');
-            if (event.detail.successful) {
-                sessionStorage.setItem('toast', JSON.stringify({ text: 'Rezerwacja potwierdzona', kind: 'success' }));
-                window.location.reload();
-            } else if (event.detail.xhr.status === 409) {
-                msg.className = 'form-msg error';
-                msg.textContent = 'Slot zajęty — wybierz inny czas lub zasób.';
-            } else if (event.detail.xhr.status === 422) {
-                msg.className = 'form-msg error';
-                msg.textContent = 'Nieprawidłowe dane (np. ends_at <= starts_at).';
-            } else {
-                msg.className = 'form-msg error';
-                msg.textContent = 'Błąd ' + event.detail.xhr.status;
-            }
-        "
-    >
-        <label>
-            Zasób
-            <select name="resource_id" required>
-                {% for r in resources %}
-                <option value="{{ r.id }}">{{ r.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <div class="grid">
+    <details>
+        <summary><strong>Nowa rezerwacja</strong></summary>
+        <form
+            hx-post="/bookings"
+            hx-ext="json-enc"
+            hx-swap="none"
+            hx-on::after-request="
+                const msg = document.getElementById('booking-form-msg');
+                if (event.detail.successful) {
+                    sessionStorage.setItem('toast', JSON.stringify({ text: 'Rezerwacja potwierdzona', kind: 'success' }));
+                    window.location.reload();
+                } else if (event.detail.xhr.status === 409) {
+                    msg.className = 'form-msg error';
+                    msg.textContent = 'Slot zajęty — wybierz inny czas lub zasób.';
+                } else if (event.detail.xhr.status === 422) {
+                    msg.className = 'form-msg error';
+                    msg.textContent = 'Nieprawidłowe dane (np. ends_at <= starts_at).';
+                } else {
+                    msg.className = 'form-msg error';
+                    msg.textContent = 'Błąd ' + event.detail.xhr.status;
+                }
+            "
+            style="margin-top: 1rem;"
+        >
             <label>
-                Od
-                <input type="datetime-local" name="starts_at" required>
+                Zasób
+                <select name="resource_id" required>
+                    {% for r in resources %}
+                    <option value="{{ r.id }}">{{ r.name }}</option>
+                    {% endfor %}
+                </select>
             </label>
+            <div class="grid">
+                <label>
+                    Od
+                    <input type="datetime-local" name="starts_at" required>
+                </label>
+                <label>
+                    Do
+                    <input type="datetime-local" name="ends_at" required>
+                </label>
+            </div>
             <label>
-                Do
-                <input type="datetime-local" name="ends_at" required>
+                Notatki (opcjonalne)
+                <textarea name="notes" rows="2" maxlength="2000" placeholder="np. spotkanie zespołu"></textarea>
             </label>
-        </div>
-        <label>
-            Notatki (opcjonalne)
-            <textarea name="notes" rows="2" maxlength="2000" placeholder="np. spotkanie zespołu"></textarea>
-        </label>
-        <button type="submit">Zarezerwuj</button>
-        <div id="booking-form-msg" class="form-msg"></div>
-    </form>
+            <button type="submit" style="width: auto;">Zarezerwuj</button>
+            <div id="booking-form-msg" class="form-msg"></div>
+        </form>
+    </details>
     {% else %}
-    <p class="muted">Najpierw <a href="/app/resources">dodaj zasób</a>, żeby móc cokolwiek zarezerwować.</p>
+    <p class="muted" style="margin-top: 1rem; font-size: 0.9rem;">
+        Najpierw <a href="/app/resources">dodaj zasób</a>, żeby móc cokolwiek zarezerwować.
+    </p>
     {% endif %}
 </article>
 {% endblock %}

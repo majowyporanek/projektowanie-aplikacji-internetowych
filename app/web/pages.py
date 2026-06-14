@@ -80,7 +80,7 @@ async def bookings_page(
     session: Annotated[AsyncSession, Depends(get_session)],
     scope: str = "mine",
     resource: str | None = None,
-    resource_status: str = "all",
+    status: str = "all",
     when: str = "upcoming",
     q: str | None = None,
     sort: str = "starts_at",
@@ -91,8 +91,10 @@ async def bookings_page(
 
     scope = scope if scope in ("mine", "all") else "mine"
     when = when if when in ("upcoming", "all", "past") else "upcoming"
-    resource_status = (
-        resource_status if resource_status in ("all", "active", "inactive") else "all"
+    status = (
+        status
+        if status in ("all", "confirmed", "pending", "cancelled", "needs_action")
+        else "all"
     )
     sort = sort if sort in _SORT_COLUMNS else "starts_at"
     dir = dir if dir in ("asc", "desc") else "desc"
@@ -116,10 +118,18 @@ async def bookings_page(
         stmt = stmt.where(Booking.user_id == user.id)
     if resource_uuid is not None:
         stmt = stmt.where(Booking.resource_id == resource_uuid)
-    if resource_status == "active":
-        stmt = stmt.where(Resource.is_active.is_(True))
-    elif resource_status == "inactive":
-        stmt = stmt.where(Resource.is_active.is_(False))
+    if status == "confirmed":
+        stmt = stmt.where(Booking.status == "confirmed")
+    elif status == "pending":
+        stmt = stmt.where(Booking.status == "pending")
+    elif status == "cancelled":
+        stmt = stmt.where(Booking.status == "cancelled")
+    elif status == "needs_action":
+        # rezerwacja aktywna (nie anulowana) na nieaktywnym zasobie —
+        # user musi zdecydować: anulować albo przenieść
+        stmt = stmt.where(
+            Booking.status != "cancelled", Resource.is_active.is_(False)
+        )
 
     now = datetime.now(timezone.utc)
     if when == "upcoming":
@@ -166,7 +176,7 @@ async def bookings_page(
     current_filters = {
         "scope": scope,
         "resource": resource if resource_uuid else None,
-        "resource_status": resource_status if resource_status != "all" else None,
+        "status": status if status != "all" else None,
         "when": when,
         "q": q,
         "sort": sort,
@@ -188,7 +198,7 @@ async def bookings_page(
             "user": user,
             "scope": scope,
             "resource_id": resource if resource_uuid else "",
-            "resource_status": resource_status,
+            "status": status,
             "when": when,
             "q": q or "",
             "sort": sort,

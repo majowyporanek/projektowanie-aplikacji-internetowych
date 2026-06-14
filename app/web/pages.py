@@ -1,5 +1,6 @@
+import calendar as _calendar
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlencode
@@ -71,6 +72,109 @@ _SORT_COLUMNS = {
     "ends_at": Booking.ends_at,
     "status": Booking.status,
 }
+
+_MONTH_NAMES_PL = [
+    "styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec",
+    "lipiec", "sierpień", "wrzesień", "październik", "listopad", "grudzień",
+]
+_WEEKDAY_NAMES_PL = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"]
+
+
+@router.get("/calendar", response_class=HTMLResponse)
+async def calendar_page(
+    request: Request,
+    user: Annotated[User | None, Depends(get_current_user_optional)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    year: int | None = None,
+    month: int | None = None,
+    scope: str = "all",
+):
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+
+    scope = scope if scope in ("mine", "all") else "all"
+
+    today = datetime.now(timezone.utc).date()
+    if year is None or month is None or not (1 <= month <= 12):
+        year, month = today.year, today.month
+
+    # granice miesiąca w UTC — bierzemy wszystkie rezerwacje które zaczynają się
+    # w tym miesiącu (anulowane też, oznaczone osobnym kolorem)
+    month_start = datetime(year, month, 1, tzinfo=timezone.utc)
+    if month == 12:
+        next_month_start = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        next_month_start = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+
+    stmt = (
+        select(Booking, Resource.name)
+        .join(Resource, Booking.resource_id == Resource.id)
+        .where(
+            Booking.organization_id == user.organization_id,
+            Booking.starts_at >= month_start,
+            Booking.starts_at < next_month_start,
+        )
+        .order_by(Booking.starts_at.asc())
+    )
+    if scope == "mine":
+        stmt = stmt.where(Booking.user_id == user.id)
+
+    rows = (await session.execute(stmt)).all()
+
+    # bucket rezerwacji po dniu rozpoczęcia
+    by_day: dict[int, list[dict]] = {}
+    for b, resource_name in rows:
+        day = b.starts_at.day
+        by_day.setdefault(day, []).append(
+            {
+                "id": b.id,
+                "resource_name": resource_name,
+                "starts_at": b.starts_at,
+                "ends_at": b.ends_at,
+                "status": b.status,
+                "is_mine": b.user_id == user.id,
+            }
+        )
+
+    # siatka tygodni (poniedziałek pierwszy); 0 = dzień spoza miesiąca
+    cal = _calendar.Calendar(firstweekday=0)
+    weeks = []
+    for week in cal.monthdayscalendar(year, month):
+        cells = []
+        for day in week:
+            cells.append(
+                {
+                    "day": day,
+                    "is_today": day != 0
+                    and date(year, month, day) == today,
+                    "bookings": by_day.get(day, []) if day != 0 else [],
+                }
+            )
+        weeks.append(cells)
+
+    prev_year, prev_month = (year, month - 1) if month > 1 else (year - 1, 12)
+    next_year, next_month = (year, month + 1) if month < 12 else (year + 1, 1)
+
+    return templates.TemplateResponse(
+        request,
+        "calendar.html",
+        {
+            "title": "Kalendarz",
+            "user": user,
+            "scope": scope,
+            "year": year,
+            "month": month,
+            "month_name": _MONTH_NAMES_PL[month - 1],
+            "weekday_names": _WEEKDAY_NAMES_PL,
+            "weeks": weeks,
+            "prev_year": prev_year,
+            "prev_month": prev_month,
+            "next_year": next_year,
+            "next_month": next_month,
+            "today_year": today.year,
+            "today_month": today.month,
+        },
+    )
 
 
 @router.get("/bookings", response_class=HTMLResponse)

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block content %}
+<header>
+    <h1>Kalendarz</h1>
+    <p class="muted">Zalogowano jako <strong>{{ user.email }}</strong></p>
+</header>
+
+<article>
+    <div class="cal-toolbar">
+        <div class="cal-nav">
+            <a class="btn-secondary" role="button"
+               href="/app/calendar?year={{ prev_year }}&month={{ prev_month }}&scope={{ scope }}">‹</a>
+            <h3 class="cal-title">{{ month_name }} {{ year }}</h3>
+            <a class="btn-secondary" role="button"
+               href="/app/calendar?year={{ next_year }}&month={{ next_month }}&scope={{ scope }}">›</a>
+            <a class="reset-link"
+               href="/app/calendar?year={{ today_year }}&month={{ today_month }}&scope={{ scope }}">dziś</a>
+        </div>
+        <div class="row-actions">
+            <a href="/app/calendar?scope=mine&year={{ year }}&month={{ month }}"
+               role="button"
+               style="{% if scope != 'mine' %}background: var(--paper); color: var(--chocolate); border: 1px solid var(--line); box-shadow: none;{% endif %}">
+               Moje
+            </a>
+            <a href="/app/calendar?scope=all&year={{ year }}&month={{ month }}"
+               role="button"
+               style="{% if scope != 'all' %}background: var(--paper); color: var(--chocolate); border: 1px solid var(--line); box-shadow: none;{% endif %}">
+               Wszystkie
+            </a>
+        </div>
+    </div>
+
+    <div class="cal-grid">
+        {% for name in weekday_names %}
+        <div class="cal-weekday">{{ name }}</div>
+        {% endfor %}
+
+        {% for week in weeks %}
+            {% for cell in week %}
+            <div class="cal-cell {% if cell.day == 0 %}cal-cell-empty{% endif %} {% if cell.is_today %}cal-cell-today{% endif %}">
+                {% if cell.day != 0 %}
+                <div class="cal-daynum">{{ cell.day }}</div>
+                {% for b in cell.bookings %}
+                <div class="cal-event cal-event-{{ b.status }} {% if b.is_mine %}cal-event-mine{% endif %}"
+                     title="{{ b.resource_name }} · {{ b.starts_at.strftime('%H:%M') }}–{{ b.ends_at.strftime('%H:%M') }}{% if b.status == 'cancelled' %} (anulowana){% endif %}">
+                    <span class="cal-event-time">{{ b.starts_at.strftime('%H:%M') }}</span>
+                    {{ b.resource_name }}
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <div class="cal-legend">
+        <span><span class="cal-dot cal-event-confirmed"></span> Potwierdzona</span>
+        <span><span class="cal-dot cal-event-pending"></span> Oczekuje</span>
+        <span><span class="cal-dot cal-event-cancelled"></span> Anulowana</span>
+        <a href="/app/bookings" class="reset-link" style="margin-left: auto;">＋ nowa rezerwacja</a>
+    </div>
+</article>
+
+<style>
+    .cal-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+    .cal-nav { display: flex; align-items: center; gap: 0.75rem; }
+    .cal-nav .btn-secondary { padding: 0.3rem 0.8rem; font-size: 1.1rem; line-height: 1; }
+    .cal-title { margin: 0; min-width: 9rem; text-align: center; text-transform: capitalize; }
+
+    .cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        overflow: hidden;
+    }
+    .cal-weekday {
+        background: var(--cream);
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--ink-soft);
+    }
+    .cal-cell {
+        background: var(--paper);
+        min-height: 6.5rem;
+        padding: 0.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .cal-cell-empty { background: var(--cream); }
+    .cal-cell-today { background: var(--sky-soft); }
+    .cal-cell-today .cal-daynum {
+        background: var(--chocolate);
+        color: var(--paper);
+        border-radius: 50%;
+        width: 1.6rem;
+        height: 1.6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .cal-daynum { font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); }
+
+    .cal-event {
+        font-size: 0.72rem;
+        line-height: 1.3;
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.4rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 3px solid transparent;
+    }
+    .cal-event-time { font-weight: 600; margin-right: 0.2rem; }
+    .cal-event-confirmed { background: var(--success-bg); color: var(--success-fg); border-left-color: var(--success-fg); }
+    .cal-event-pending   { background: var(--warning-bg); color: var(--warning-fg); border-left-color: var(--warning-fg); }
+    .cal-event-cancelled { background: var(--line); color: var(--ink-soft); text-decoration: line-through; border-left-color: var(--ink-soft); }
+    .cal-event-mine { box-shadow: inset 0 0 0 1px rgba(72, 38, 29, 0.25); font-weight: 500; }
+
+    .cal-legend {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: var(--ink-soft);
+    }
+    .cal-legend > span { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .cal-dot { width: 0.8rem; height: 0.8rem; border-radius: 0.25rem; display: inline-block; }
+
+    @media (max-width: 640px) {
+        .cal-cell { min-height: 4.5rem; }
+        .cal-event { font-size: 0.62rem; }
+    }
+</style>
+{% endblock %}

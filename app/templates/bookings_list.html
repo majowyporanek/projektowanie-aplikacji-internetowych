@@ -92,7 +92,12 @@
         <tbody>
             {% for b in bookings %}
             <tr id="booking-row-{{ b.id }}">
-                <td>{{ b.resource_name }}</td>
+                <td>
+                    {{ b.resource_name }}
+                    {% if b.notes %}
+                    <div class="booking-note" title="{{ b.notes }}">{{ b.notes }}</div>
+                    {% endif %}
+                </td>
                 <td>{{ b.starts_at.strftime("%Y-%m-%d %H:%M") }}</td>
                 <td>{{ b.ends_at.strftime("%Y-%m-%d %H:%M") }}</td>
                 <td class="muted">{{ b.user_email }}{% if b.is_mine %} <em>(ja)</em>{% endif %}</td>

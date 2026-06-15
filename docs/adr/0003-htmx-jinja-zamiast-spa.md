@@ -2,7 +2,7 @@
 
 ## Kontekst
 
-Frontend dla systemu rezerwacji. Apka ma ~6-8 widoków CRUD-owych. Wymaganie R3 dopuszcza SPA, SSR lub HTMX.
+Frontend dla systemu rezerwacji. Aplikacja ma ~6-8 widoków CRUD-owych. Wymaganie R3 dopuszcza SPA, SSR lub HTMX.
 
 Backend jest zaprojektowany jako single source of truth: race conditions atomowo egzekwowane przez constraint bazodanowy (ADR-4), multi-tenancy przez dependency `get_current_org`, auth przez JWT w httpOnly cookie. Frontend nie podejmuje autonomicznych decyzji — pyta serwer i renderuje to co przyszło.
 
@@ -12,11 +12,11 @@ SSR w Jinja2 + interaktywność przez HTMX (z extension `json-enc` do form → J
 
 ## Alternatywy
 
-**React + TypeScript jako SPA** — wymaga routing, state managera, API clienta z typowaniem kontraktów, auth flow w JS. Każdy element to osobna powierzchnia bugów i decyzji, a żaden nie wnosi wartości w domenie gdzie state mieszka w bazie.
+**React + TypeScript jako SPA** — wymaga routing, state managera, API clienta z typowaniem kontraktów, auth flow w JS. Każdy element to osobna powierzchnia błędów i decyzji, a żaden nie wnosi wartości w domenie, w której stan przechowywany jest w bazie.
 
-**Next.js (SSR + RSC)** — hybrydowe SSR z Reactem. Dla 6 widoków CRUD-owych nadbudowuje Node ecosystem + React + warstwę Next-ową bez funkcjonalnego zysku.
+**Next.js (SSR + RSC)** — hybrydowe SSR z Reactem. Dla 6 widoków CRUD-owych nadbudowuje ekosystem Node + React + warstwę Next bez funkcjonalnego zysku.
 
-**Czysty Jinja2 bez JS** — każda akcja przeładowuje całą stronę, UX z 2005.
+**Czysty Jinja2 bez JS** — każda akcja przeładowuje całą stronę; archaiczny UX z pełnymi przeładowaniami.
 
 ## Uzasadnienie
 
@@ -30,7 +30,7 @@ Pozycjonowanie: HTMX to najlżejszy przedstawiciel rodziny *server-side renderin
 
 ## Trade-offy
 
-Każda interakcja to roundtrip — brak optymistycznego UI. Dla CRUD-a z server-side validation nie ma znaczenia. Dla apek z drag-and-drop / edytorem / real-time collab byłby to dealbreaker; żaden z tych przypadków nie występuje w domenie.
+Każda interakcja to roundtrip — brak optymistycznego UI. Dla CRUD-a z walidacją po stronie serwera nie ma to znaczenia. Dla aplikacji z drag-and-drop / edytorem / real-time collab byłby to czynnik dyskwalifikujący; żaden z tych przypadków nie występuje w domenie.
 
 Brak client-side routingu. Mobile app na tym backendzie wymagałby dorobienia oddzielnych endpointów JSON (FastAPI ma to trywialnie przez `/docs`).
 

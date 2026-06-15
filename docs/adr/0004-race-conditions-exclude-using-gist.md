@@ -4,7 +4,7 @@
 
 Centralny invariant systemu: jeden zasób nie może mieć dwóch nakładających się aktywnych rezerwacji. To jest pytanie obronne projektu — co zrobić, gdy dwa requesty równolegle próbują zarezerwować ten sam slot.
 
-Naiwna implementacja jest broken:
+Naiwna implementacja jest błędna:
 
 ```python
 existing = await session.scalar(
@@ -20,7 +20,7 @@ if existing is None:
     await session.commit()
 ```
 
-Między `SELECT` a `INSERT` inny transaction może zacommitować swój wiersz. Oba dostają "no conflict found" w `SELECT`, oba commitują, mamy double-booking. Async + connection pool sprzyja temu szczególnie, bo wielu workerów obsługuje requesty równolegle.
+Między `SELECT` a `INSERT` inna transakcja może zatwierdzić swój wiersz. Obie otrzymują w `SELECT` wynik "no conflict found", obie zatwierdzają — i dochodzi do double-bookingu. Async + connection pool szczególnie temu sprzyja, bo wiele workerów obsługuje requesty równolegle.
 
 ## Decyzja
 
@@ -37,23 +37,23 @@ Wymagane rozszerzenie `btree_gist` (GIST natywnie obsługuje operatory zakresowe
 
 Zakres half-open `[)`: rezerwacja 10:00-11:00 i 11:00-12:00 *nie* kolidują (typowe dla wydarzeń back-to-back). `WHERE status IN ('pending', 'confirmed')` — anulowane bookingi nie blokują slotów, ale zostają w tabeli dla historii.
 
-Aplikacja łapie `sqlalchemy.exc.IntegrityError`, sprawdza `pgcode == '23P01'` (exclusion_violation) i zwraca 409 Conflict.
+Aplikacja przechwytuje `sqlalchemy.exc.IntegrityError`, sprawdza `pgcode == '23P01'` (exclusion_violation) i zwraca 409 Conflict.
 
 ## Alternatywy
 
 **SERIALIZABLE isolation** — Postgres potrafi wykryć konflikt zapisów na poziomie predicate locks i odrzucić jeden z transactionów z `serialization_failure`. Działa, ale wprowadza retry loop w aplikacji ("jeśli serialization failure, spróbuj ponownie z exponential backoff"). Trudniej rozumować, kiedy retry zadziała, a kiedy nie — i czy retry idempotent. Cena: kompleksowość kodu aplikacyjnego dla problemu, który baza może rozwiązać deklaratywnie.
 
-**SELECT FOR UPDATE na wierszu Resource** — przed `INSERT` na booking robię `SELECT id FROM resource WHERE id = ? FOR UPDATE`. To serializuje wszystkie rezerwacje per resource. Działa, ale zabija concurrency: dwa requesty na różne sloty tego samego zasobu blokują się nawzajem bez powodu (logicznie nie kolidują).
+**SELECT FOR UPDATE na wierszu Resource** — przed `INSERT` na booking robię `SELECT id FROM resource WHERE id = ? FOR UPDATE`. To serializuje wszystkie rezerwacje per resource. Działa, ale eliminuje współbieżność: dwa requesty na różne sloty tego samego zasobu blokują się nawzajem bez powodu (logicznie nie kolidują).
 
-**Distributed lock w Redis (SETNX z TTL)** — przed INSERT biorę lock per `resource_id`. Działa, ale dodaje infrastrukturalną zależność: invariant zaczyna zależeć od Redis i kodu aplikacyjnego, zamiast od bazy. Lock musi mieć TTL (bo aplikacja może umrzeć między lock a unlock), TTL musi być dłuższy niż request, ale krótki w razie crashu — kompromis bez czystego rozwiązania.
+**Distributed lock w Redis (SETNX z TTL)** — przed INSERT zakładam lock per `resource_id`. Działa, ale dodaje zależność infrastrukturalną: invariant zaczyna zależeć od Redisa i kodu aplikacyjnego, zamiast od bazy. Lock musi mieć TTL (bo aplikacja może ulec awarii między lock a unlock), TTL musi być dłuższy niż czas requestu, ale krótki na wypadek awarii — kompromis bez czystego rozwiązania.
 
-**Walidacja tylko w aplikacji bez zmiany izolacji** — patrz Kontekst, broken.
+**Walidacja tylko w aplikacji bez zmiany izolacji** — patrz Kontekst, rozwiązanie błędne.
 
 ## Uzasadnienie
 
 `EXCLUDE USING gist` przenosi invariant z kodu do schematu. Baza atomowo (w jednym statemencie `INSERT`) sprawdza, czy nowy wiersz nie koliduje z żadnym istniejącym, i odrzuca operację jeśli koliduje. Nie ma okna race window, nie ma retry, nie ma locków blokujących niezwiązane operacje.
 
-To jest dokładnie ten feature, do którego Postgres dodał exclusion constraints — generalizacja UNIQUE na operatory dowolnego typu. Range types z `&&` (overlap) były dorzucone do Postgresa 9.2 między innymi po to.
+To jest dokładnie ten feature, do którego Postgres dodał exclusion constraints — generalizacja UNIQUE na operatory dowolnego typu. Range types z `&&` (overlap) zostały dodane do PostgreSQL 9.2 między innymi w tym celu.
 
 Half-open zakresy `[)` pasują do domeny: wydarzenie kończące się o 11:00 i wydarzenie zaczynające się o 11:00 to dwa różne wydarzenia. Otwarte zakresy `()` byłyby błędne (rezerwacja 10:00-11:00 i 11:00-12:00 dla narzędzia, które trzeba fizycznie przekazać — wymaga buforu). Domknięte `[]` blokowałyby legalne back-to-back. `[)` jest standardem dla event scheduling.
 
@@ -66,9 +66,9 @@ Performance: GIST index na `(resource_id, tstzrange)` daje O(log n) lookup czaso
 **Deadlock zamiast czystego 409 pod prawdziwą współbieżnością.** `EXCLUDE USING gist`
 przy dwóch *naprawdę* równoczesnych INSERT-ach nie zawsze daje `23P01` — obie
 transakcje wstawiają wiersz i każda czeka, aż druga się zacommituje, żeby sprawdzić
-konflikt. Postgres wykrywa to jako deadlock (`40P01`) i zabija jedną transakcję.
+konflikt. PostgreSQL wykrywa to jako deadlock (`40P01`) i przerywa jedną z transakcji.
 To **nie** jest `IntegrityError`, więc naiwny handler przepuściłby to jako HTTP 500.
-Łapię `40P01` (i `40001` serialization_failure) w `create_booking` i ponawiam INSERT
+Przechwytuję `40P01` (i `40001` serialization_failure) w `create_booking` i ponawiam INSERT
 (max 3 próby) — deadlock jest przejściowy, więc po retry przegrana transakcja widzi
 już zacommitowany wiersz zwycięzcy i dostaje czyste `23P01` → 409. Dzięki temu wynik
 jest deterministyczny `[201, 409]`, nie losowy `[201, 500]`.
@@ -86,11 +86,11 @@ dopisania.
 
 **Lock-in na PostgreSQL.** `EXCLUDE USING gist`, `tstzrange`, `btree_gist` to feature'y Postgresa. MySQL ich nie ma (najlepiej co mogę zrobić to SERIALIZABLE + retry lub trigger). SQLite tym bardziej. Świadomy wybór — projekt celuje w Postgresa od ADR-2, nie ma sensownego planu migracji.
 
-**Constraint logic rozproszona po dwóch miejscach.** Pydantic waliduje `ends_at > starts_at` (żeby zwrócić 422 zamiast 500 dla głupiego inputu), CHECK constraint w bazie powtarza tę walidację jako defense in depth. Ktoś czytający kod musi wiedzieć o obu — model `Booking` ma `CheckConstraint`, ale Pydantic schema też robi swoje sprawdzenie. Akceptuję duplikację, bo:
-- Pydantic łapie wcześniej i daje sensowny komunikat
+**Constraint logic rozproszona po dwóch miejscach.** Pydantic waliduje `ends_at > starts_at` (żeby zwrócić 422 zamiast 500 dla nieprawidłowych danych wejściowych), CHECK constraint w bazie powtarza tę walidację jako defense in depth. Ktoś czytający kod musi wiedzieć o obu — model `Booking` ma `CheckConstraint`, ale Pydantic schema też robi swoje sprawdzenie. Akceptuję duplikację, bo:
+- Pydantic przechwytuje wcześniej i daje czytelny komunikat
 - CHECK constraint jest niezawodnym backstopem dla wpisów z innych źródeł (raw SQL, console)
 
-**Coupling do Postgres error codes.** Endpoint mapuje `23P01` na 409 i `23514` na 422. To stałe SQLSTATE z dokumentacji Postgresa — zmieniają się raz na dekadę (SQLSTATE jest standardem SQL). Nie martwi mnie to.
+**Coupling do Postgres error codes.** Endpoint mapuje `23P01` na 409 i `23514` na 422. To stałe SQLSTATE z dokumentacji PostgreSQL — zmieniają się raz na dekadę (SQLSTATE jest standardem SQL). Nie stanowi to problemu.
 
 **Aplikacja musi rozumieć semantykę 409.** Frontend dostaje 409 i musi pokazać sensowny komunikat ("ten slot został właśnie zajęty"). Bez tego user widzi generyczny error. Patrz wpięcie HTMX (`hx-on::after-request`).
 

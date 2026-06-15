@@ -2,9 +2,9 @@
 
 ## Kontekst
 
-Apka potrzebuje warstwy persistence dla 4 encji (User, Organization, Resource, Booking) z relacjami N:1 i 1:N między nimi. Najważniejsze ograniczenie: muszę móc wymusić atomowo, że dwa "aktywne" Bookingi tego samego Resource nie nakładają się w czasie (patrz ADR-4). To wymaga konkretnego feature'u bazy: range types + exclusion constraints.
+Aplikacja wymaga warstwy persystencji dla 4 encji (User, Organization, Resource, Booking) z relacjami N:1 i 1:N między nimi. Najważniejsze ograniczenie: muszę móc atomowo wymusić, że dwa "aktywne" Bookingi tego samego Resource nie nakładają się w czasie (patrz ADR-4). Wymaga to konkretnej funkcjonalności bazy: range types + exclusion constraints.
 
-Backend jest async (ADR-1, FastAPI + Uvicorn), więc baza też musi gadać async, żeby nie blokować event loopa.
+Backend jest asynchroniczny (ADR-1, FastAPI + Uvicorn), więc baza również musi działać asynchronicznie, aby nie blokować pętli zdarzeń.
 
 ## Decyzja
 
@@ -12,9 +12,9 @@ PostgreSQL 16 + SQLAlchemy 2.0 (async API) + asyncpg + Alembic.
 
 ## Alternatywy
 
-**SQLite** — pojedynczy plik, zero infra, idealny do prototypów. Brak range types i exclusion constraints, więc strategia race condition z ADR-4 całkowicie odpada. Pozostałoby SERIALIZABLE + globalny writer lock (SQLite ma jeden writer naraz) — działa ale to inny problem, inna obrona. Odpada przez ADR-4.
+**SQLite** — pojedynczy plik, zero infrastruktury, idealny do prototypów. Brak range types i exclusion constraints sprawia, że strategia race condition z ADR-4 staje się niemożliwa. Pozostałoby SERIALIZABLE + globalny writer lock (SQLite dopuszcza jednego writera naraz) — działa, ale to inny problem i inna obrona. Wykluczone przez ADR-4.
 
-**MySQL / MariaDB** — async drivery istnieją (aiomysql), ale brak `tstzrange` i `EXCLUDE USING gist`. Race conditions trzeba by łapać przez SERIALIZABLE isolation + retry, patrz alternatywy z ADR-4. Funkcjonalnie odpada.
+**MySQL / MariaDB** — asynchroniczne drivery istnieją (aiomysql), ale brak `tstzrange` i `EXCLUDE USING gist`. Race conditions trzeba by obsługiwać przez SERIALIZABLE isolation + retry, patrz alternatywy z ADR-4. Funkcjonalnie wykluczone.
 
 **MongoDB** — relacje N:1/1:N nie są natywne, integralność po stronie aplikacji. Sprawdzanie nakładających się przedziałów wymagałoby pełnego scanu kolekcji lub ręcznych indeksów — bez deklaratywnego constraintu.
 
@@ -28,7 +28,7 @@ SQLAlchemy 2.0 daje typed declarative models (`Mapped[uuid.UUID]`) — IDE i myp
 
 asyncpg jest natywnie async (nie wrapper na sync drivera), najszybszy dla Postgresa.
 
-Alembic mapuje migracje na pliki w repo — historia zmian schematu jest w gicie, deploy = `alembic upgrade head`. Autogenerate wykrywa zmiany w modelach (nowa tabela, kolumna, FK), wystarczy do rutynowych przypadków. Skomplikowane rzeczy (jak właśnie `EXCLUDE USING gist` z `WHERE`) piszę ręcznie przez `op.execute("ALTER TABLE ... EXCLUDE ...")` — Alembic nie potrafi tego autogenerować, ale to nie problem.
+Alembic mapuje migracje na pliki w repo — historia zmian schematu jest w gicie, deploy = `alembic upgrade head`. Autogenerate wykrywa zmiany w modelach (nowa tabela, kolumna, FK), wystarczy do rutynowych przypadków. Bardziej złożone konstrukcje (jak właśnie `EXCLUDE USING gist` z `WHERE`) piszę ręcznie przez `op.execute("ALTER TABLE ... EXCLUDE ...")` — Alembic nie potrafi tego autogenerować, co nie stanowi problemu.
 
 ## Trade-offy
 
@@ -36,7 +36,7 @@ Alembic mapuje migracje na pliki w repo — historia zmian schematu jest w gicie
 
 **Alembic autogenerate ma luki.** Nie wykrywa: exclusion constraints, partial indexes, GIN/GIST indexes z customowymi expressions, niektórych zmian w `CHECK`. Po każdym `--autogenerate` trzeba zerknąć w wygenerowany plik. Migracje sercowe (jak Booking z exclusion) piszę od początku ręcznie — bezpieczniej i lepiej rozumiem, co się dzieje.
 
-**Async ORM ma własne quirks.** `await session.scalar(...)` zamiast `session.query(...).first()`. Eager loading przez `selectinload` zamiast lazy access (lazy w async jest problematyczne). Czasem trzeba zejść do raw SQL przez `text()` (np. funkcje Postgresa typu `gen_random_uuid()`).
+**Async ORM ma własną specyfikę.** `await session.scalar(...)` zamiast `session.query(...).first()`. Eager loading przez `selectinload` zamiast lazy access (lazy loading w async jest problematyczny). Czasem trzeba sięgnąć po raw SQL przez `text()` (np. funkcje PostgreSQL typu `gen_random_uuid()`).
 
 **Dodatkowy kontener.** docker-compose ma `db` jako osobną usługę z volume na `pgdata`. To wymóg R5 i tak (konteneryzacja).
 

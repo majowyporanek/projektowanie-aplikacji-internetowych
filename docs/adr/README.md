@@ -14,7 +14,7 @@ Jaki problem rozwiązujemy? Jakie są ograniczenia?
 Co wybraliśmy.
 
 ## Alternatywy
-Co rozważaliśmy i dlaczego odpadło.
+Co rozważano i dlaczego zostało odrzucone.
 
 ## Uzasadnienie
 Dlaczego ten wybór w kontekście tego projektu.

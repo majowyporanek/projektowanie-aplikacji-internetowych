@@ -275,6 +275,30 @@
 
         .row-actions { display: flex; gap: 0.5rem; }
 
+        .health-overall {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.75rem;
+        }
+        .health-version { font-size: 0.8rem; margin-left: auto; }
+        .health-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .health-item { display: inline-flex; align-items: center; gap: 0.45rem; }
+        .health-dot {
+            width: 0.65rem;
+            height: 0.65rem;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: inline-block;
+        }
+        .health-dot-ok   { background: var(--success-fg); box-shadow: 0 0 0 3px var(--success-bg); }
+        .health-dot-down { background: var(--danger-fg);  box-shadow: 0 0 0 3px var(--danger-bg); }
+
         .booking-note {
             margin-top: 0.2rem;
             font-size: 0.8rem;

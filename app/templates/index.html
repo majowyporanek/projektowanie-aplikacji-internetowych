@@ -31,8 +31,8 @@
 
 <article>
     <h3>Stan systemu</h3>
-    <div hx-get="/health" hx-trigger="load, every 10s" hx-swap="innerHTML">
-        Ładowanie statusu…
+    <div hx-get="/health/card" hx-trigger="load, every 10s" hx-swap="innerHTML">
+        <p class="muted">Ładowanie statusu…</p>
     </div>
 </article>
 {% endblock %}

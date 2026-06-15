@@ -1,0 +1,18 @@
+{% set ok = health.status == "ok" %}
+<div class="health-card">
+    <div class="health-overall">
+        <span class="health-dot {{ 'health-dot-ok' if ok else 'health-dot-down' }}"></span>
+        <strong>{{ "Wszystko działa" if ok else "Częściowa awaria" }}</strong>
+        <span class="muted health-version">v{{ health.version }}</span>
+    </div>
+    <div class="health-items">
+        <span class="health-item">
+            <span class="health-dot {{ 'health-dot-ok' if health.db == 'ok' else 'health-dot-down' }}"></span>
+            Baza danych <span class="muted">{{ "ok" if health.db == "ok" else "niedostępna" }}</span>
+        </span>
+        <span class="health-item">
+            <span class="health-dot {{ 'health-dot-ok' if health.redis == 'ok' else 'health-dot-down' }}"></span>
+            Redis (cache) <span class="muted">{{ "ok" if health.redis == "ok" else "niedostępny" }}</span>
+        </span>
+    </div>
+</div>

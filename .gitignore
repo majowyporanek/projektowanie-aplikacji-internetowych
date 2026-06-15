@@ -220,3 +220,5 @@ __marimo__/
 # Project-specific
 requirements/
 .env
+docs/OBRONA.md
+docs/PREZENTACJA.md

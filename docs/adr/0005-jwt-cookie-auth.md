@@ -27,7 +27,7 @@ Brak refresh tokenów. Brak blacklisty. Logout = `delete_cookie` po stronie prze
 
 ## Alternatywy
 
-**Sesje server-side w Redisie (Starlette SessionMiddleware lub własna implementacja).** Klasyczne podejście, daje natychmiastową rewokację (kasujemy klucz w Redisie, sesja martwa). Wymaga jednak osobnego lookupu w Redis na każdy zalogowany request, więcej kodu, i duplikuje rolę Redisa który u mnie już służy jako broker Celery (ADR-7) i cache dostępności (ADR-8). Nie potrzebuję natychmiastowej rewokacji w MVP, więc dorzucanie kolejnej infrastruktury jest niepotrzebne.
+**Sesje server-side w Redisie (Starlette SessionMiddleware lub własna implementacja).** Klasyczne podejście, daje natychmiastową rewokację (kasujemy klucz w Redisie, sesja martwa). Wymaga jednak osobnego lookupu w Redis na każdy zalogowany request, więcej kodu, i duplikuje rolę Redisa który u mnie służy jako cache dostępności (ADR-8). Nie potrzebuję natychmiastowej rewokacji w MVP, więc dorzucanie kolejnej infrastruktury jest niepotrzebne.
 
 **JWT w nagłówku `Authorization: Bearer ...`.** Standard dla SPA i public API. Dla HTMX zły wybór — przeglądarka nie wysyła automatycznie nagłówków auth, musiałabym dodać JS który by tag każdy `hx-get` / `hx-post` doklejał header. To dodaje warstwę JavaScriptu po stronie klienta po to, żeby uniknąć cookie — odwracam to przez cookie i mam zero JS-u na ścieżce auth.
 

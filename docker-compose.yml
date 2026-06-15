@@ -47,19 +47,5 @@ services:
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
-  worker:
-    build: .
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-booking}:${POSTGRES_PASSWORD:-booking}@db:5432/${POSTGRES_DB:-booking}
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./app:/app/app
-    command: celery -A app.tasks.celery_app worker --loglevel=info
-
 volumes:
   pg_data:

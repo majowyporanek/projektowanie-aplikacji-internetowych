@@ -6,7 +6,7 @@ Endpoint `GET /resources/{id}/availability?from=...&to=...` zwraca listę zajęt
 
 W typowym scenariuszu kalendarza zespołowego dwóch userów z tej samej organizacji w ciągu minuty otwiera widok tego samego pokoju na ten sam tydzień. Dwa identyczne zapytania → dwa razy ten sam SQL (JOIN, partial index na `(resource_id)` z filtrem `status IN ('pending','confirmed')` + zakres czasu). Wynik jest niezmienny między tworzeniem/anulowaniem rezerwacji, czyli najczęściej.
 
-Redis już jest w stacku (Celery broker w ADR-7), więc dodanie cache layer nie zwiększa liczby usług w `docker-compose`.
+Redis jest w stacku wyłącznie dla tego cache — to jego jedyna rola, odkąd zrezygnowałam z Celery (patrz ADR-7). Świadomie godzę się na jedną dodatkową usługę w `docker-compose`, bo cache z dyscypliną TTL + invalidacja jest tu realnym elementem do pokazania, a nie dekoracją.
 
 ## Decyzja
 

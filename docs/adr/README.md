@@ -33,5 +33,5 @@ Czego się wyrzekamy, jakie są konsekwencje.
 | [ADR-4](0004-race-conditions-exclude-using-gist.md) | Strategia race conditions: EXCLUDE USING gist + tstzrange | ✓ |
 | [ADR-5](0005-jwt-cookie-auth.md) | JWT cookie auth zamiast OAuth/sesji serwerowych | ✓ |
 | [ADR-6](0006-multi-tenancy-shared-schema.md) | Multi-tenancy: shared schema z organization_id | ✓ |
-| ADR-7 | Celery + Redis dla email reminders | todo |
+| [ADR-7](0007-celery-redis-task-queue.md) | Kolejka zadań (Celery + Redis) — rozważona i odrzucona | ✗ odrzucona |
 | [ADR-8](0008-redis-cache-availability.md) | Cache dostępności zasobu w Redis | ✓ |

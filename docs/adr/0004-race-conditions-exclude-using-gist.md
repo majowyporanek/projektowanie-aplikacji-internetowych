@@ -63,6 +63,27 @@ Performance: GIST index na `(resource_id, tstzrange)` daje O(log n) lookup czaso
 
 ## Trade-offy
 
+**Deadlock zamiast czystego 409 pod prawdziwą współbieżnością.** `EXCLUDE USING gist`
+przy dwóch *naprawdę* równoczesnych INSERT-ach nie zawsze daje `23P01` — obie
+transakcje wstawiają wiersz i każda czeka, aż druga się zacommituje, żeby sprawdzić
+konflikt. Postgres wykrywa to jako deadlock (`40P01`) i zabija jedną transakcję.
+To **nie** jest `IntegrityError`, więc naiwny handler przepuściłby to jako HTTP 500.
+Łapię `40P01` (i `40001` serialization_failure) w `create_booking` i ponawiam INSERT
+(max 3 próby) — deadlock jest przejściowy, więc po retry przegrana transakcja widzi
+już zacommitowany wiersz zwycięzcy i dostaje czyste `23P01` → 409. Dzięki temu wynik
+jest deterministyczny `[201, 409]`, nie losowy `[201, 500]`.
+
+Subtelność implementacyjna: skalary (`organization_id`, `resource_id`, `user_id`)
+wyciągam do zwykłych zmiennych *przed* pętlą retry. Po `rollback()` obiekty ORM są
+expired, a dostęp do ich atrybutów wymusiłby lazy-load — synchroniczne IO w kontekście
+async, czyli `MissingGreenlet`. To była realna pułapka, którą złapałam dopiero
+puszczając hero test kilkanaście razy pod rząd (pojedynczy run bywał zielony).
+
+Tę samą ekspozycję na deadlock ma teoretycznie `update_booking` (przeniesienie
+rezerwacji na inny zasób dzieli ten sam constraint), ale tam nie ma realnej
+współbieżności w demo, więc na razie zostaje bez retry — świadomie, do ewentualnego
+dopisania.
+
 **Lock-in na PostgreSQL.** `EXCLUDE USING gist`, `tstzrange`, `btree_gist` to feature'y Postgresa. MySQL ich nie ma (najlepiej co mogę zrobić to SERIALIZABLE + retry lub trigger). SQLite tym bardziej. Świadomy wybór — projekt celuje w Postgresa od ADR-2, nie ma sensownego planu migracji.
 
 **Constraint logic rozproszona po dwóch miejscach.** Pydantic waliduje `ends_at > starts_at` (żeby zwrócić 422 zamiast 500 dla głupiego inputu), CHECK constraint w bazie powtarza tę walidację jako defense in depth. Ktoś czytający kod musi wiedzieć o obu — model `Booking` ma `CheckConstraint`, ale Pydantic schema też robi swoje sprawdzenie. Akceptuję duplikację, bo:

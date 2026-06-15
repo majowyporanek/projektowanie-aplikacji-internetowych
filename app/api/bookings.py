@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -19,6 +19,13 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 PG_EXCLUSION_VIOLATION = "23P01"
 PG_CHECK_VIOLATION = "23514"
+# Pod prawdziwą współbieżnością EXCLUDE USING gist może dać deadlock (40P01)
+# zamiast czystego exclusion violation: obie transakcje wstawiają wiersz i czekają
+# nawzajem na commit, żeby sprawdzić konflikt. Postgres zabija jedną. To przejściowe
+# — po retry przegrana widzi już zacommitowany wiersz i dostaje czyste 23P01 → 409.
+PG_DEADLOCK = "40P01"
+PG_SERIALIZATION_FAILURE = "40001"
+MAX_BOOKING_RETRIES = 3
 
 
 @router.get("", response_model=list[BookingOut])
@@ -135,33 +142,53 @@ async def create_booking(
     if not resource.is_active:
         raise HTTPException(status.HTTP_409_CONFLICT, "Resource is not active")
 
-    booking = Booking(
-        organization_id=user.organization_id,
-        resource_id=resource.id,
-        user_id=user.id,
-        starts_at=payload.starts_at,
-        ends_at=payload.ends_at,
-        notes=payload.notes,
-    )
-    session.add(booking)
-    try:
-        await session.commit()
-    except IntegrityError as exc:
-        await session.rollback()
-        pgcode = getattr(exc.orig, "sqlstate", None)
-        if pgcode == PG_EXCLUSION_VIOLATION:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Time slot conflicts with an existing booking",
-            ) from exc
-        if pgcode == PG_CHECK_VIOLATION:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Booking violates a database check constraint",
-            ) from exc
-        raise
+    # Skalary wyciągam PRZED pętlą: po rollbacku (retry na deadlocku) obiekty ORM
+    # user/resource są expired, a dostęp do ich atrybutów wymusiłby lazy-load
+    # (synchroniczne IO → MissingGreenlet w kontekście async). Zwykłe wartości są
+    # odporne na rollback.
+    org_id = user.organization_id
+    resource_id = resource.id
+    user_id = user.id
+
+    booking: Booking | None = None
+    for attempt in range(MAX_BOOKING_RETRIES):
+        booking = Booking(
+            organization_id=org_id,
+            resource_id=resource_id,
+            user_id=user_id,
+            starts_at=payload.starts_at,
+            ends_at=payload.ends_at,
+            notes=payload.notes,
+        )
+        session.add(booking)
+        try:
+            await session.commit()
+            break
+        except IntegrityError as exc:
+            await session.rollback()
+            pgcode = getattr(exc.orig, "sqlstate", None)
+            if pgcode == PG_EXCLUSION_VIOLATION:
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "Time slot conflicts with an existing booking",
+                ) from exc
+            if pgcode == PG_CHECK_VIOLATION:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "Booking violates a database check constraint",
+                ) from exc
+            raise
+        except DBAPIError as exc:
+            await session.rollback()
+            pgcode = getattr(exc.orig, "sqlstate", None)
+            # deadlock/serialization to przejściowe konflikty współbieżności —
+            # ponów; na ostatniej próbie przepuść wyjątek (nie maskuj trwałego błędu)
+            if (
+                pgcode in (PG_DEADLOCK, PG_SERIALIZATION_FAILURE)
+                and attempt < MAX_BOOKING_RETRIES - 1
+            ):
+                continue
+            raise
     await session.refresh(booking)
-    await cache_invalidate_prefix(
-        f"availability:{booking.organization_id}:{booking.resource_id}:"
-    )
+    await cache_invalidate_prefix(f"availability:{org_id}:{resource_id}:")
     return booking
